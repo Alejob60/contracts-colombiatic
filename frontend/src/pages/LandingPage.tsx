@@ -212,7 +212,7 @@ export function LandingPage() {
               ✦ SECOP II · Contratación Pública Colombia
             </span>
 
-            <h1 className="font-serif font-bold text-5xl md:text-6xl lg:text-7xl text-white mb-5 leading-tight">
+            <h1 className="font-bold text-5xl md:text-6xl lg:text-7xl text-white mb-5 leading-tight">
               Encuentra, evalúa y gana{' '}
               <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
                 licitaciones
@@ -255,7 +255,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} className="text-center mb-10"
           >
-            <h2 className="font-serif font-bold text-3xl md:text-4xl text-white mb-3">
+            <h2 className="font-bold text-3xl md:text-4xl text-white mb-3">
               Resultados reales de SECOP II
             </h2>
             <p className="text-stone-400 text-sm">Datos en vivo desde datos.gov.co · Actualización diaria</p>
@@ -293,7 +293,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} className="text-center mb-14"
           >
-            <h2 className="font-serif font-bold text-3xl md:text-4xl text-white mb-3">
+            <h2 className="font-bold text-3xl md:text-4xl text-white mb-3">
               El ciclo completo de contratación pública
             </h2>
             <p className="text-stone-400 max-w-2xl mx-auto text-sm leading-relaxed">
@@ -343,7 +343,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} className="text-center mb-14"
           >
-            <h2 className="font-serif font-bold text-3xl md:text-4xl text-white mb-3">
+            <h2 className="font-bold text-3xl md:text-4xl text-white mb-3">
               Cómo funciona
             </h2>
           </motion.div>
@@ -355,7 +355,7 @@ export function LandingPage() {
                 viewport={{ once: true }} transition={{ delay: idx * 0.08 }}
                 className="text-center"
               >
-                <div className="text-5xl font-serif font-bold text-emerald-500/15 mb-3">{step.step}</div>
+                <div className="text-5xl font-bold text-emerald-500/15 mb-3">{step.step}</div>
                 <div className="w-9 h-9 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
                   <step.icon className="w-4 h-4 text-emerald-400" />
                 </div>
@@ -374,7 +374,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} className="text-center mb-12"
           >
-            <h2 className="font-serif font-bold text-3xl md:text-4xl text-white mb-3">
+            <h2 className="font-bold text-3xl md:text-4xl text-white mb-3">
               Diseñado para contratistas colombianos
             </h2>
             <p className="text-stone-400 text-sm">Entendemos el papeleo porque lo vivimos.</p>
@@ -415,7 +415,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} className="text-center mb-10"
           >
-            <h2 className="font-serif font-bold text-3xl md:text-4xl text-white mb-3">
+            <h2 className="font-bold text-3xl md:text-4xl text-white mb-3">
               Un solo plan. Todo incluido.
             </h2>
             <p className="text-stone-400 text-sm">Sin tarifas ocultas. Sin límites por módulo.</p>
@@ -431,7 +431,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} className="text-center mb-12"
           >
-            <h2 className="font-serif font-bold text-3xl text-white mb-2">Preguntas frecuentes</h2>
+            <h2 className="font-bold text-3xl text-white mb-2">Preguntas frecuentes</h2>
           </motion.div>
           <div className="space-y-3">
             {FAQS.map((faq, idx) => (
@@ -476,7 +476,7 @@ export function LandingPage() {
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }} className="max-w-2xl mx-auto"
         >
-          <h2 className="font-serif font-bold text-4xl md:text-5xl text-white mb-4 leading-tight">
+          <h2 className="font-bold text-4xl md:text-5xl text-white mb-4 leading-tight">
             Empieza a encontrar contratos hoy
           </h2>
           <p className="text-stone-400 text-lg mb-8">

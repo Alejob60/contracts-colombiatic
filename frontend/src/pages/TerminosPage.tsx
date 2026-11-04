@@ -8,7 +8,7 @@ const SITE = 'contracts.colombiatic.com.co';
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-8">
-      <h2 className="font-serif font-semibold text-xl text-white mb-3 border-b border-white/8 pb-2">{title}</h2>
+      <h2 className="font-semibold text-xl text-white mb-3 border-b border-white/8 pb-2">{title}</h2>
       <div className="text-stone-400 text-sm leading-relaxed space-y-3">{children}</div>
     </div>
   );
@@ -19,7 +19,7 @@ export function TerminosPage() {
     <div className="min-h-screen bg-brand-navy pt-24 pb-20 px-4">
       <div className="max-w-3xl mx-auto">
         <p className="text-stone-500 text-xs mb-2">Última actualización: {LAST_UPDATED}</p>
-        <h1 className="font-serif text-3xl font-bold text-white mb-1">Términos y Condiciones de Uso</h1>
+        <h1 className="text-3xl font-bold text-white mb-1">Términos y Condiciones de Uso</h1>
         <p className="text-emerald-400 text-sm font-medium mb-8">
           Ley 527/1999 (Comercio Electrónico) · Ley 1480/2011 (Estatuto del Consumidor)
         </p>

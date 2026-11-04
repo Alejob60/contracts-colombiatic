@@ -13,7 +13,7 @@ export function Footer() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center">
               <FileSearch className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-serif font-semibold text-white">
+            <span className="font-semibold text-white">
               ColombiaTIC <span className="text-emerald-400">Contracts</span>
             </span>
           </Link>

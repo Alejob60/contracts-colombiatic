@@ -18,7 +18,7 @@ export function PricingPage() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-14">
-          <h1 className="font-serif font-bold text-4xl md:text-5xl text-white mb-4">
+          <h1 className="font-bold text-4xl md:text-5xl text-white mb-4">
             Precios simples y transparentes
           </h1>
           <p className="text-stone-400 text-lg">Empieza gratis. Actualiza cuando lo necesites.</p>
