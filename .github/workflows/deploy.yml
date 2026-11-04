@@ -1,0 +1,219 @@
+name: Deploy → contracts.colombiatic.com.co
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'What to deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options: [all, frontend, api]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  VM_HOST: 184.197.181.224
+  VM_USER: ubuntu
+  VM_INSTANCE_ID: i-03e59a614d1c78c8e
+  API_PORT: 8110
+  FRONTEND_DIST: /opt/contracts-web/dist
+  API_DIR: /opt/contracts-api
+  API_VENV: /opt/contracts-api-venv
+
+jobs:
+  # ── Detect what changed ──────────────────────────────────────────────────
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.f.outputs.frontend }}
+      api: ${{ steps.f.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            api:
+              - 'api/**'
+
+  # ── Build frontend (Vite) ────────────────────────────────────────────────
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      needs.changes.outputs.frontend == 'true' ||
+      github.event.inputs.component == 'all' ||
+      github.event.inputs.component == 'frontend'
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_API_URL: ''
+          VITE_TENANT_ID: contracts
+      - run: test -f dist/index.html && echo "dist OK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 3
+
+  # ── Package API (FastAPI) ────────────────────────────────────────────────
+  build-api:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      needs.changes.outputs.api == 'true' ||
+      github.event.inputs.component == 'all' ||
+      github.event.inputs.component == 'api'
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python -c "from app.main import app; print('imports OK')"
+      - name: Package
+        run: |
+          cd ..
+          tar -czf api.tar.gz \
+            --exclude='api/.venv' --exclude='api/__pycache__' \
+            --exclude='api/**/__pycache__' --exclude='api/.env' \
+            api/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-package
+          path: api.tar.gz
+          retention-days: 3
+
+  # ── Deploy to VM ─────────────────────────────────────────────────────────
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-api]
+    if: |
+      always() &&
+      (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped') &&
+      (needs.build-api.result == 'success'     || needs.build-api.result == 'skipped') &&
+      (needs.build-frontend.result == 'success' || needs.build-api.result == 'success')
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - uses: actions/download-artifact@v4
+        with: { name: frontend-dist, path: /tmp/frontend-dist }
+        continue-on-error: true
+
+      - uses: actions/download-artifact@v4
+        with: { name: api-package, path: /tmp }
+        continue-on-error: true
+
+      # Upload to S3 → presigned GET URLs (VM has no aws-cli)
+      - name: Upload artifacts to S3
+        id: s3
+        run: |
+          BUCKET="contracts-deploy-520847769480"
+          SHA="${{ github.sha }}"
+          DEPLOY_FE=false
+          DEPLOY_API=false
+
+          if [ -d "/tmp/frontend-dist" ]; then
+            tar -czf /tmp/frontend.tar.gz -C /tmp/frontend-dist .
+            aws s3 cp /tmp/frontend.tar.gz "s3://${BUCKET}/deploys/${SHA}/frontend.tar.gz"
+            FE_URL=$(aws s3 presign "s3://${BUCKET}/deploys/${SHA}/frontend.tar.gz" --expires-in 900)
+            echo "fe_url=${FE_URL}" >> $GITHUB_OUTPUT
+            DEPLOY_FE=true
+          fi
+
+          if [ -f "/tmp/api.tar.gz" ]; then
+            aws s3 cp /tmp/api.tar.gz "s3://${BUCKET}/deploys/${SHA}/api.tar.gz"
+            API_URL=$(aws s3 presign "s3://${BUCKET}/deploys/${SHA}/api.tar.gz" --expires-in 900)
+            echo "api_url=${API_URL}" >> $GITHUB_OUTPUT
+            DEPLOY_API=true
+          fi
+
+          echo "deploy_fe=${DEPLOY_FE}"   >> $GITHUB_OUTPUT
+          echo "deploy_api=${DEPLOY_API}" >> $GITHUB_OUTPUT
+
+      # Ephemeral SSH key via EC2 Instance Connect
+      - name: Push ephemeral SSH key
+        run: |
+          ssh-keygen -t rsa -b 2048 -f /tmp/ci_key -N ""
+          aws ec2-instance-connect send-ssh-public-key \
+            --instance-id ${{ env.VM_INSTANCE_ID }} \
+            --availability-zone us-east-1b \
+            --instance-os-user ubuntu \
+            --ssh-public-key file:///tmp/ci_key.pub
+
+      - name: Deploy frontend
+        if: steps.s3.outputs.deploy_fe == 'true'
+        run: |
+          ssh -i /tmp/ci_key -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 \
+              ubuntu@${{ env.VM_HOST }} << 'ENDSSH'
+          curl -fsSL "${{ steps.s3.outputs.fe_url }}" -o /tmp/fe.tar.gz
+          rm -rf /tmp/contracts-fe-new && mkdir /tmp/contracts-fe-new
+          tar -xzf /tmp/fe.tar.gz -C /tmp/contracts-fe-new
+          [ -d "${{ env.FRONTEND_DIST }}.old" ] && rm -rf "${{ env.FRONTEND_DIST }}.old"
+          [ -d "${{ env.FRONTEND_DIST }}" ] && mv "${{ env.FRONTEND_DIST }}" "${{ env.FRONTEND_DIST }}.old"
+          mv /tmp/contracts-fe-new "${{ env.FRONTEND_DIST }}"
+          sudo nginx -t && sudo systemctl reload nginx
+          rm -f /tmp/fe.tar.gz
+          echo "Frontend deployed"
+          ENDSSH
+
+      - name: Deploy API
+        if: steps.s3.outputs.deploy_api == 'true'
+        run: |
+          ssh -i /tmp/ci_key -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 \
+              ubuntu@${{ env.VM_HOST }} << 'ENDSSH'
+          curl -fsSL "${{ steps.s3.outputs.api_url }}" -o /tmp/api.tar.gz
+          rm -rf /tmp/contracts-api-new && mkdir /tmp/contracts-api-new
+          tar -xzf /tmp/api.tar.gz -C /tmp/contracts-api-new --strip-components=1
+          ${{ env.API_VENV }}/bin/pip install -q -r /tmp/contracts-api-new/requirements.txt
+          rsync -a --exclude='.env' /tmp/contracts-api-new/ ${{ env.API_DIR }}/
+          sudo systemctl restart contracts-api
+          sleep 5
+          sudo systemctl is-active contracts-api
+          rm -f /tmp/api.tar.gz && rm -rf /tmp/contracts-api-new
+          echo "API deployed"
+          ENDSSH
+
+      - name: Smoke test
+        run: |
+          sleep 5
+          HTTP=$(curl -so /dev/null -w "%{http_code}" \
+            https://contracts.colombiatic.com.co/healthz --max-time 10 || echo "000")
+          echo "healthz → HTTP ${HTTP}"
+          [ "$HTTP" = "200" ] && echo "PASS" || echo "WARN: check VM logs"
+
+      - name: Cleanup key
+        if: always()
+        run: rm -f /tmp/ci_key /tmp/ci_key.pub
