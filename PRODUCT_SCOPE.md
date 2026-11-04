@@ -174,12 +174,25 @@ Competidor directo: expedito.com.co/cuenta-de-cobro/generador/
 
 ## Marco Legal Obligatorio
 
-| Documento | Norma | URL |
-|---|---|---|
-| Política de Privacidad y Habeas Data | Ley 1581/2012, Decreto 1377/2013 | `/privacidad` |
-| Términos y Condiciones | Ley 527/1999, Ley 1480/2011 | `/terminos` |
-| Política de Cookies | Circular SIC 02/2015 | `/cookies` |
-| Política de Uso de IA | Buenas prácticas + transparencia | `/politica-ia` |
-| Tratamiento de datos personales | Registro RNBD ante SIC | `/privacidad#registro` |
+| Documento | Norma | URL | Estado |
+|---|---|---|---|
+| Política de Privacidad y Habeas Data | Ley 1581/2012, Decreto 1377/2013 | `/privacidad` | ✅ Live |
+| Términos y Condiciones | Ley 527/1999, Ley 1480/2011 | `/terminos` | ✅ Live |
+| Política de Cookies | Circular SIC 02/2015 | `/cookies` | ✅ Live |
+| Política de Uso de IA | Buenas prácticas + transparencia | `/politica-ia` | ✅ Live |
+| Cookie Consent Banner | Ley 1581/2012, Circular SIC | Popup en primera visita | ✅ Live |
+
+### Cookie Consent — comportamiento implementado
+
+- **Primera visita**: el sitio carga con `blur(4px)` y un modal centrado con:
+  - Descripción de cookies esenciales vs analíticas
+  - Botón "Solo esenciales" (sin Analytics)
+  - Botón "Aceptar todas" (con Analytics)
+  - Links a `/privacidad` y `/cookies`
+- **Decisión guardada en**: `localStorage.contracts_cookie_consent` (key + version)
+- **Versión**: bump `CONSENT_VERSION` en `CookieConsentBanner.tsx` para re-solicitar
+  consentimiento cuando cambien las políticas
+- **Sin consentimiento**: el contenido existe pero está bloqueado (pointer-events-none
+  + blur) — el usuario no puede interactuar hasta decidir
 
 **Entidad responsable de datos:** ColombiaTIC SAS · dairagarzon@colombiatic.com.co
