@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, FileSearch } from 'lucide-react';
+import { Menu, X, FileSearch, LogOut, User } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const NAV_LINKS = [
   { href: '/buscar', label: 'Buscar' },
@@ -13,6 +14,8 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { isAuth, isPro, user, logout } = useAuthStore();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -69,19 +72,40 @@ export function Navbar() {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              to="/auth"
-              className="text-sm text-stone-400 hover:text-white transition-colors px-3 py-1.5"
-            >
-              Iniciar sesión
-            </Link>
-            <Link
-              to="/buscar"
-              className="text-sm bg-gradient-to-r from-emerald-500 to-teal-400 text-white
-                font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
-            >
-              Buscar gratis
-            </Link>
+            {isAuth ? (
+              <>
+                {!isPro && (
+                  <Link to="/checkout"
+                    className="text-sm bg-amber-500/10 border border-amber-500/20 text-amber-400
+                      px-3 py-1.5 rounded-lg hover:bg-amber-500/15 transition-colors font-medium">
+                    ⚡ Activar PRO
+                  </Link>
+                )}
+                <Link to="/dashboard"
+                  className="flex items-center gap-1.5 text-sm text-stone-300 hover:text-white
+                    transition-colors px-3 py-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  {user?.name?.split(' ')[0] ?? 'Dashboard'}
+                </Link>
+                <button onClick={() => { logout(); navigate('/'); }}
+                  className="p-2 text-stone-500 hover:text-stone-300 transition-colors"
+                  title="Cerrar sesión">
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/auth"
+                  className="text-sm text-stone-400 hover:text-white transition-colors px-3 py-1.5">
+                  Iniciar sesión
+                </Link>
+                <Link to="/buscar"
+                  className="text-sm bg-gradient-to-r from-emerald-500 to-teal-400 text-white
+                    font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                  Buscar gratis
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile: buscar shortcut + hamburger */}
