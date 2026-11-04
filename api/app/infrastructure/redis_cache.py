@@ -78,6 +78,27 @@ class RedisCache:
         except Exception as exc:
             logger.warning("Cache set_process error: %s", exc)
 
+    # ── Municipios cache (TTL 24 h — changes infrequently) ───────────────
+
+    async def get_municipios(self, departamento: str) -> list[str] | None:
+        key = f"contracts:municipios:{departamento.lower().replace(' ', '_')}"
+        try:
+            raw = await self._r.get(key)
+            if raw:
+                import json
+                return json.loads(raw)
+        except Exception as exc:
+            logger.warning("Cache get_municipios error: %s", exc)
+        return None
+
+    async def set_municipios(self, departamento: str, municipios: list[str]) -> None:
+        key = f"contracts:municipios:{departamento.lower().replace(' ', '_')}"
+        try:
+            import json
+            await self._r.setex(key, 86400, json.dumps(municipios))
+        except Exception as exc:
+            logger.warning("Cache set_municipios error: %s", exc)
+
     # ── Freemium counter ─────────────────────────────────────────────────
 
     def _freemium_key(self, ip: str, session_id: str) -> str:

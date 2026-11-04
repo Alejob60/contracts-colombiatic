@@ -33,6 +33,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/secop", tags=["SECOP II"])
 
 
+@router.get("/municipios")
+async def get_municipios(
+    departamento: Annotated[str, Query(description="Nombre exacto del departamento")],
+    gateway: SecopSodaGateway = Depends(get_secop_gateway),
+    cache: RedisCache = Depends(get_redis_cache),
+) -> JSONResponse:
+    """
+    Municipios con contratos en SECOP II para un departamento dado.
+    Resultados cacheados 24 h — solo retorna ciudades con actividad contractual real.
+    """
+    # Cache first
+    cached = await cache.get_municipios(departamento)
+    if cached is not None:
+        return JSONResponse(content={"municipios": cached, "cached": True})
+
+    municipios = await gateway.get_municipios_by_departamento(departamento)
+    await cache.set_municipios(departamento, municipios)
+    return JSONResponse(content={"municipios": municipios, "cached": False})
+
+
 @router.get("/search")
 async def search_secop(
     request: Request,

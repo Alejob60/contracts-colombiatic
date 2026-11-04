@@ -265,3 +265,19 @@ class SecopSodaGateway(ISecopGateway):
         if not rows:
             return None
         return _normalize_row(rows[0])
+
+    async def get_municipios_by_departamento(self, departamento: str) -> list[str]:
+        """Return sorted list of distinct municipalities that have contracts in *departamento*."""
+        safe = departamento.replace("'", "''")
+        rows = await self._get({
+            "$select": "ciudad_entidad",
+            "$where": f"departamento_entidad='{safe}'",
+            "$group": "ciudad_entidad",
+            "$order": "ciudad_entidad ASC",
+            "$limit": 500,
+        })
+        return sorted([
+            row["ciudad_entidad"].strip()
+            for row in rows
+            if row.get("ciudad_entidad") and row["ciudad_entidad"].strip()
+        ])
