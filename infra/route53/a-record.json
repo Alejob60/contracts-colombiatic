@@ -1,0 +1,16 @@
+{
+  "Comment": "Route53 A record: contracts.colombiatic.com.co → VM Orbital (184.197.181.224). Hosted zone Z038226237YP80Z0V49QA is the same zone used by atelier and pqrs subdomains (account 520847769480, us-east-1). TTL 300 matches the other A records in this zone.",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "contracts.colombiatic.com.co.",
+        "Type": "A",
+        "TTL": 300,
+        "ResourceRecords": [
+          { "Value": "184.197.181.224" }
+        ]
+      }
+    }
+  ]
+}

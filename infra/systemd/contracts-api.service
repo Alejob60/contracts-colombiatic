@@ -1,0 +1,30 @@
+# /etc/systemd/system/contracts-api.service
+# FastAPI SECOP search + RAG + AI bid evaluator.
+# Entry point: app.main:app (inside app/ package, NOT root main.py).
+# Venv: /opt/contracts-api-venv (separate from app code for clean deploys).
+# Logs: /var/log/contracts-api.{log,err}
+#
+# GOTCHA: config.py reads AWS_REGION at import-time via pydantic-settings.
+# Passing it as Environment= here guarantees it is present before the
+# EnvironmentFile is loaded, same pattern as govdocs-api.service.d/20-vault.conf.
+[Unit]
+Description=Contracts API — FastAPI SECOP search + RAG + evaluator
+After=network-online.target redis.service
+Wants=network-online.target redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/contracts-api
+EnvironmentFile=/opt/contracts-api/.env
+ExecStart=/opt/contracts-api-venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8100 --workers 2
+Restart=always
+RestartSec=8
+StandardOutput=append:/var/log/contracts-api.log
+StandardError=append:/var/log/contracts-api.err
+LimitNOFILE=65535
+Environment="AWS_REGION=us-east-1"
+Environment="AWS_DEFAULT_REGION=us-east-1"
+
+[Install]
+WantedBy=multi-user.target

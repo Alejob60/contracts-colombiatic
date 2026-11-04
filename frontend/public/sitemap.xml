@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://contracts.colombiatic.com.co/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://contracts.colombiatic.com.co/" />
+  </url>
+
+  <url>
+    <loc>https://contracts.colombiatic.com.co/buscar</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <url>
+    <loc>https://contracts.colombiatic.com.co/pricing</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://contracts.colombiatic.com.co/auth</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- Legal pages -->
+  <url>
+    <loc>https://contracts.colombiatic.com.co/privacidad</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+  </url>
+  <url>
+    <loc>https://contracts.colombiatic.com.co/terminos</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+  </url>
+  <url>
+    <loc>https://contracts.colombiatic.com.co/cookies</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.30</priority>
+  </url>
+  <url>
+    <loc>https://contracts.colombiatic.com.co/politica-ia</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.35</priority>
+  </url>
+
+</urlset>

@@ -1,0 +1,21 @@
+# /etc/systemd/system/contracts-web.service
+#
+# Vite SPA — nginx serves static files directly from /opt/contracts-web/dist
+# This unit is a placeholder so deploy.ps1 can manage the deployment lifecycle.
+# It runs a simple file-watcher / no-op that confirms the build is in place.
+
+[Unit]
+Description=Contracts Web — Vite SPA static build (served by nginx)
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+ExecStart=/bin/bash -c 'test -f /opt/contracts-web/dist/index.html && echo "Contracts Web: dist OK" || { echo "ERROR: dist/index.html missing"; exit 1; }'
+StandardOutput=append:/var/log/contracts-web.log
+StandardError=append:/var/log/contracts-web.err
+
+[Install]
+WantedBy=multi-user.target

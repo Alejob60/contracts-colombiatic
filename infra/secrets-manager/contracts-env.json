@@ -1,0 +1,58 @@
+{
+  "_comment": [
+    "Secrets Manager template for ColombiaTIC Contracts.",
+    "Secret name: realculture/contracts-env",
+    "ARN pattern: arn:aws:secretsmanager:us-east-1:520847769480:secret:realculture/contracts-env-*",
+    "",
+    "HOW TO CREATE:",
+    "  aws secretsmanager create-secret --name realculture/contracts-env \\",
+    "    --secret-string file://contracts-env.json --region us-east-1",
+    "",
+    "HOW TO UPDATE:",
+    "  aws secretsmanager put-secret-value --secret-id realculture/contracts-env \\",
+    "    --secret-string file://contracts-env.json --region us-east-1",
+    "",
+    "The VM instance role (vm-instance-role-policy.json) already has",
+    "secretsmanager:GetSecretValue for arn:...secret:realculture/*.",
+    "Values marked CHANGE_ME must be replaced before deployment.",
+    "DO NOT commit this file with real credentials."
+  ],
+
+  "APP_ENV": "production",
+  "LOG_LEVEL": "INFO",
+
+  "DATABASE_URL": "postgresql+asyncpg://postgres:CHANGE_ME_DB_PASSWORD@realculture-postgres.c4zw8acc2goo.us-east-1.rds.amazonaws.com:5432/colombiatic?options=-c%20search_path%3Dcontracts",
+
+  "REDIS_URL": "redis://127.0.0.1:6379/2",
+
+  "JWT_SECRET": "CHANGE_ME_SHARED_WITH_REALCULTURE",
+  "JWT_ALGORITHM": "HS256",
+
+  "AWS_REGION": "us-east-1",
+  "BEDROCK_MODEL_EVALUATOR": "anthropic.claude-3-haiku-20240307-v1:0",
+  "BEDROCK_MODEL_EMBED": "amazon.titan-embed-text-v2:0",
+
+  "SECOP_API_URL": "https://www.datos.gov.co/resource/p6dx-8zbt.json",
+  "SECOP_APP_TOKEN": "CHANGE_ME_SOCRATA_APP_TOKEN",
+  "SECOP_CACHE_TTL_SEARCH": "900",
+  "SECOP_CACHE_TTL_DETAIL": "21600",
+
+  "S3_BUCKET_DOCUMENTS": "contracts-documents",
+  "S3_REGION": "us-east-1",
+
+  "FREEMIUM_MAX_SEARCHES": "3",
+  "FREEMIUM_COUNTER_TTL": "86400",
+
+  "WOMPI_ENV": "test",
+  "WOMPI_PUBLIC_KEY": "pub_test_MsDbOzexF97jeXXpC3VzLi64BlhPXKRJ",
+  "WOMPI_PRIVATE_KEY": "CHANGE_ME_WOMPI_PRIVATE",
+  "WOMPI_EVENTS_SECRET": "CHANGE_ME_WOMPI_EVENTS",
+  "WOMPI_INTEGRITY_KEY": "CHANGE_ME_WOMPI_INTEGRITY",
+
+  "NEXT_PUBLIC_API_URL": "https://contracts.colombiatic.com.co/api/v1",
+  "NEXT_PUBLIC_SITE_URL": "https://contracts.colombiatic.com.co",
+  "NEXT_PUBLIC_BACKEND_URL": "https://contracts.colombiatic.com.co",
+  "NEXT_PUBLIC_TENANT_ID": "contracts",
+  "NEXT_PUBLIC_PAYMENT_MODE": "wompi",
+  "NEXT_PUBLIC_WOMPI_PUBLIC_KEY": "pub_test_MsDbOzexF97jeXXpC3VzLi64BlhPXKRJ"
+}
