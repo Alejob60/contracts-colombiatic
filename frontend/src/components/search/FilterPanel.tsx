@@ -202,23 +202,25 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
         <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider font-medium">
           Presupuesto (COP)
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             placeholder="Mínimo"
             value={values.precio_min}
             onChange={set('precio_min')}
-            min={0}
-            className="flex-1 bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
+            className="w-full min-w-0 bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
               placeholder-stone-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             placeholder="Máximo"
             value={values.precio_max}
             onChange={set('precio_max')}
-            min={0}
-            className="flex-1 bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
+            className="w-full min-w-0 bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
               placeholder-stone-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
         </div>
