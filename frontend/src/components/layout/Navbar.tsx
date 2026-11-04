@@ -35,7 +35,7 @@ export function Navbar() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center">
               <FileSearch className="w-4 h-4 text-white" />
             </div>
-            <span className="font-serif font-semibold text-white text-lg tracking-tight">
+            <span className="font-semibold text-white text-lg tracking-tight">
               ColombiaTIC <span className="text-emerald-400">Contracts</span>
             </span>
           </Link>
