@@ -4,7 +4,7 @@ Redis cache adapter — search results, process detail, freemium counter.
 Key namespaces (all prefixed with 'contracts:'):
   search:{sha256}    — SecopSearchResult JSON, TTL=SECOP_CACHE_TTL_SEARCH
   process:{id}       — SecopProcess JSON, TTL=SECOP_CACHE_TTL_DETAIL
-  freemium:{ip}:{sid}— integer counter, TTL=FREEMIUM_COUNTER_TTL
+  freemium:{ip}      — integer counter (IP-only, no session)
 """
 from __future__ import annotations
 
@@ -85,7 +85,6 @@ class RedisCache:
         try:
             raw = await self._r.get(key)
             if raw:
-                import json
                 return json.loads(raw)
         except Exception as exc:
             logger.warning("Cache get_municipios error: %s", exc)
@@ -94,25 +93,25 @@ class RedisCache:
     async def set_municipios(self, departamento: str, municipios: list[str]) -> None:
         key = f"contracts:municipios:{departamento.lower().replace(' ', '_')}"
         try:
-            import json
             await self._r.setex(key, 86400, json.dumps(municipios))
         except Exception as exc:
             logger.warning("Cache set_municipios error: %s", exc)
 
     # ── Freemium counter ─────────────────────────────────────────────────
 
-    def _freemium_key(self, ip: str, session_id: str) -> str:
+    def _freemium_key(self, ip: str) -> str:
+        """IP-only freemium key — session_id is intentionally excluded to
+        prevent bypass via rotating X-Session-ID headers."""
         safe_ip = ip.replace(":", "_")          # collapse IPv6 colons
-        safe_sid = session_id[:32]              # truncate for key safety
-        return f"contracts:freemium:{safe_ip}:{safe_sid}"
+        return f"contracts:freemium:{safe_ip}"
 
-    async def increment_search_count(self, ip: str, session_id: str) -> int:
+    async def increment_search_count(self, ip: str) -> int:
         """Atomically increment and return the new count.
 
         No TTL — counter persists permanently per IP.
         Once the free limit is reached the user must subscribe.
         """
-        key = self._freemium_key(ip, session_id)
+        key = self._freemium_key(ip)
         try:
             count = await self._r.incr(key)
             return int(count)
@@ -120,8 +119,8 @@ class RedisCache:
             logger.warning("Freemium increment error: %s", exc)
             return 1
 
-    async def get_search_count(self, ip: str, session_id: str) -> int:
-        key = self._freemium_key(ip, session_id)
+    async def get_search_count(self, ip: str) -> int:
+        key = self._freemium_key(ip)
         try:
             val = await self._r.get(key)
             return int(val) if val else 0
@@ -129,6 +128,6 @@ class RedisCache:
             logger.warning("Freemium get_count error: %s", exc)
             return 0
 
-    async def remaining_free_searches(self, ip: str, session_id: str) -> int:
-        count = await self.get_search_count(ip, session_id)
+    async def remaining_free_searches(self, ip: str) -> int:
+        count = await self.get_search_count(ip)
         return max(0, self._max_free - count)

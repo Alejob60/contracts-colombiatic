@@ -21,7 +21,6 @@ from app.dependencies import (
     get_current_user_optional,
     get_redis_cache,
     get_secop_gateway,
-    get_session_id,
     get_settings,
     require_pro,
 )
@@ -43,6 +42,10 @@ async def get_municipios(
     Municipios con contratos en SECOP II para un departamento dado.
     Resultados cacheados 24 h — solo retorna ciudades con actividad contractual real.
     """
+    departamento = departamento.strip()
+    if not departamento:
+        return JSONResponse(status_code=400, content={"detail": "departamento es requerido"})
+
     # Cache first
     cached = await cache.get_municipios(departamento)
     if cached is not None:
@@ -86,7 +89,6 @@ async def search_secop(
     Returns HTTP 402 when the freemium limit is reached.
     """
     client_ip = get_client_ip(request)
-    session_id = get_session_id(request)
     plan_tier: str | None = user.get("planTier") if user else None  # type: ignore[union-attr]
 
     filters = SecopFilter(
@@ -108,7 +110,6 @@ async def search_secop(
         filters=filters,
         plan_tier=plan_tier,
         client_ip=client_ip,
-        session_id=session_id,
     )
 
     payload = response.to_dict()

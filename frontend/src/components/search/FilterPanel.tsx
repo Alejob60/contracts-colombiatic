@@ -77,7 +77,7 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
       })
       .catch((err) => {
         if (err.name !== 'AbortError') {
-          console.warn('municipios fetch error:', err);
+          if (import.meta.env.DEV) console.warn('municipios fetch error:', err);
           setMunicipalities([]);
         }
       })

@@ -96,7 +96,7 @@ class FakeCache:
             side_effect=self._do_increment
         )
 
-    async def _do_increment(self, ip: str, session_id: str) -> int:
+    async def _do_increment(self, ip: str) -> int:
         self._count += 1
         return self._count
 
@@ -130,7 +130,6 @@ class TestSearchSecopUseCase:
             filters=SecopFilter(),
             user_plan="PRO_LICITADOR",
             client_ip="1.2.3.4",
-            session_id="sess-123",
         )
 
         assert not response.is_gated
@@ -150,7 +149,6 @@ class TestSearchSecopUseCase:
             filters=SecopFilter(),
             user_plan=None,
             client_ip="1.2.3.4",
-            session_id="sess-123",
         )
 
         assert response.is_gated
@@ -171,7 +169,6 @@ class TestSearchSecopUseCase:
             filters=SecopFilter(),
             user_plan="FREE",
             client_ip="1.2.3.4",
-            session_id="sess-123",
         )
 
         assert response.is_gated
@@ -189,7 +186,6 @@ class TestSearchSecopUseCase:
             filters=SecopFilter(),
             user_plan=None,
             client_ip="1.2.3.4",
-            session_id="sess-123",
         )
 
         assert response.is_gated
@@ -209,7 +205,6 @@ class TestSearchSecopUseCase:
             filters=SecopFilter(),
             user_plan="PRO_LICITADOR",
             client_ip="1.2.3.4",
-            session_id="sess-123",
         )
 
         assert response.cached
@@ -227,7 +222,6 @@ class TestSearchSecopUseCase:
             filters=SecopFilter(),
             user_plan="PRO_LICITADOR",
             client_ip="1.2.3.4",
-            session_id="sess-123",
         )
 
         assert not response.cached
@@ -244,7 +238,6 @@ class TestSearchSecopUseCase:
             filters=SecopFilter(),
             user_plan=None,
             client_ip="1.2.3.4",
-            session_id="sess-123",
         )
 
         # current_count=1, after increment becomes 2, so remaining = 3-2 = 1
@@ -260,7 +253,6 @@ class TestSearchSecopUseCase:
             filters=SecopFilter(),
             user_plan="PRO_LICITADOR",
             client_ip="1.2.3.4",
-            session_id="sess-123",
         )
 
         assert response.remaining_free_searches == 3

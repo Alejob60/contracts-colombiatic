@@ -4,12 +4,11 @@ import { Eye, EyeOff, Loader2, Mail, Lock, User, Building2 } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
-const TENANT   = import.meta.env.VITE_TENANT_ID ?? 'contracts';
 
 async function apiPost(path: string, body: object) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': TENANT },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const data = await res.json();
@@ -49,9 +48,9 @@ export function AuthPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault(); setError(''); setLoading(true);
     try {
-      await apiPost('/api/auth/register-free', {
+      await apiPost('/api/auth/register', {
         name, email: regEmail, password: regPwd,
-        companyName: empresa, tenantId: TENANT,
+        companyName: empresa, tenantId: 'contracts',
       });
       const d = await apiPost('/api/auth/login', { email: regEmail, password: regPwd });
       login(d.token ?? d.access_token, d.refreshToken ?? '', {

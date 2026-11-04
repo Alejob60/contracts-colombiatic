@@ -1,27 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Check, Loader2, CreditCard } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuthStore, getTokenFromCookie } from '@/store/useAuthStore';
 import { CONTRACTS_PRICING, type BillingCycle } from '@/lib/constants/pricing';
 import { BillingToggle } from '@/components/pricing/BillingToggle';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
-const TENANT   = import.meta.env.VITE_TENANT_ID ?? 'contracts';
 
 function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP',
-    minimumFractionDigits: 0 }).format(n);
-}
-
-function sha256(message: string): Promise<string> {
-  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(message))
-    .then(buf => Array.from(new Uint8Array(buf))
-      .map(b => b.toString(16).padStart(2, '0')).join(''));
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency', currency: 'COP',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(n);
 }
 
 export function CheckoutPage() {
   const navigate   = useNavigate();
-  const { user, isAuth } = useAuthStore();
+  const { isAuth, user } = useAuthStore();
   const [cycle,    setCycle]   = useState<BillingCycle>('MONTHLY');
   const [loading,  setLoading] = useState(false);
   const [error,    setError]   = useState('');
@@ -34,30 +29,34 @@ export function CheckoutPage() {
     if (!isAuth) { navigate('/auth'); return; }
     setError(''); setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/payments/wompi/initiate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Tenant-ID': TENANT,
-          'Authorization': `Bearer ${localStorage.getItem('contracts_token')}`,
-        },
-        body: JSON.stringify({
-          planTier: 'PRO_LICITADOR',
-          billingCycle: cycle,
-          amountCents: price.copCents,
-          currency: 'COP',
-          redirectUrl: `${window.location.origin}/checkout/success`,
-        }),
+      const token = getTokenFromCookie();
+      const params = new URLSearchParams({
+        plan: 'pro_licitador',
+        email: user?.email ?? '',
+        name:  user?.name  ?? '',
+      });
+      const res = await fetch(`${API_BASE}/api/wompi/checkout-data?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? 'Error iniciando pago');
-      // Redirect to Wompi checkout
-      const wompiUrl = data.checkoutUrl ?? data.wompiUrl ?? data.url;
-      if (wompiUrl) window.location.href = wompiUrl;
-      else throw new Error('No se recibió URL de pago');
+      if (!res.ok) throw new Error(data.message ?? 'Error obteniendo datos de pago');
+
+      // Build Wompi hosted checkout URL
+      const wompiParams = new URLSearchParams({
+        'public-key':          data['public-key'],
+        'currency':            data['currency'],
+        'amount-in-cents':     String(data['amount-in-cents']),
+        'reference':           data['reference'],
+        'signature:integrity': data['signature:integrity'],
+        'redirect-url':        data['redirect-url'],
+        'customer-email':      data['customer-email'] ?? user?.email ?? '',
+      });
+
+      window.location.href = `https://checkout.wompi.co/p/?${wompiParams.toString()}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error con el pago');
-    } finally { setLoading(false); }
+      setLoading(false);
+    }
   };
 
   return (
@@ -71,12 +70,10 @@ export function CheckoutPage() {
           <p className="text-stone-400 text-sm">Búsquedas ilimitadas + evaluador IA</p>
         </div>
 
-        {/* Billing toggle */}
         <div className="flex justify-center mb-6">
           <BillingToggle cycle={cycle} onChange={setCycle} />
         </div>
 
-        {/* Price card */}
         <div className="bg-gradient-to-b from-emerald-500/10 to-transparent border border-emerald-500/20
           rounded-2xl p-6 mb-6">
           <div className="flex items-end gap-2 mb-1">
@@ -93,7 +90,7 @@ export function CheckoutPage() {
             </p>
           )}
           <p className="text-emerald-400 text-xs font-medium">
-            {cycle === 'YEARLY' ? '💰 Ahorras 20% vs mensual' : 'Cancela cuando quieras'}
+            {cycle === 'YEARLY' ? '💰 Ahorras 20% vs mensual' : 'Cancela cuando quieras · Sandbox Wompi'}
           </p>
 
           <ul className="mt-4 space-y-2">
@@ -121,12 +118,6 @@ export function CheckoutPage() {
               <Zap className="w-5 h-5" />
               Crear cuenta y pagar
             </button>
-            <p className="text-stone-600 text-xs text-center">
-              ¿Ya tienes cuenta?{' '}
-              <button onClick={() => navigate('/auth')} className="text-emerald-600 hover:text-emerald-400 underline">
-                Inicia sesión primero
-              </button>
-            </p>
           </div>
         ) : (
           <button onClick={handleCheckout} disabled={loading}
@@ -134,14 +125,12 @@ export function CheckoutPage() {
               font-bold py-4 rounded-xl hover:opacity-90 disabled:opacity-50
               transition-all flex items-center justify-center gap-2">
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-            {loading ? 'Redirigiendo a Wompi...' : `Pagar ${cycle === 'MONTHLY'
-              ? formatCOP(CONTRACTS_PRICING.prices.monthly.cop)
-              : formatCOP(CONTRACTS_PRICING.prices.yearly.cop)}`}
+            {loading ? 'Cargando Wompi...' : `Pagar ${formatCOP(price.cop)}`}
           </button>
         )}
 
         <p className="text-center text-stone-600 text-xs mt-4">
-          Pago procesado por Wompi (Bancolombia) · SSL 256-bit
+          Entorno sandbox Wompi (Bancolombia) · SSL 256-bit · No se cobra dinero real
         </p>
       </div>
     </div>

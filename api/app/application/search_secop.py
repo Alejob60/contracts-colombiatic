@@ -92,13 +92,12 @@ class SearchSecopUseCase:
         filters: SecopFilter,
         plan_tier: str | None,          # None=anonymous, 'FREE', 'PRO_LICITADOR'
         client_ip: str,
-        session_id: str,
     ) -> GatedSearchResponse:
         is_pro = plan_tier == "PRO_LICITADOR"
 
         # ── 1. Freemium gate check (anonymous only) ────────────────────────
         if not is_pro:
-            count = await self._cache.get_search_count(client_ip, session_id)
+            count = await self._cache.get_search_count(client_ip)
             if count >= self._max_free:
                 # Return a gated empty response — the router returns HTTP 402
                 empty = SecopSearchResult(results=[], total=0, offset=filters.offset, limit=filters.limit)
@@ -113,7 +112,11 @@ class SearchSecopUseCase:
         cached_result = await self._cache.get_search(filters)
         if cached_result:
             logger.debug("Cache hit for filters offset=%d q=%r", filters.offset, filters.query)
-            remaining = await self._cache.remaining_free_searches(client_ip, session_id)
+            if not is_pro:
+                new_count = await self._cache.increment_search_count(client_ip)
+                remaining = max(0, self._max_free - new_count)
+            else:
+                remaining = self._max_free
             result_dicts = (
                 [_full_process(p) for p in cached_result.results]
                 if is_pro
@@ -142,7 +145,7 @@ class SearchSecopUseCase:
 
         # ── 5. Increment freemium counter (only for non-PRO) ──────────────
         if not is_pro:
-            new_count = await self._cache.increment_search_count(client_ip, session_id)
+            new_count = await self._cache.increment_search_count(client_ip)
             remaining = max(0, self._max_free - new_count)
         else:
             remaining = self._max_free  # PRO always shows "unlimited"

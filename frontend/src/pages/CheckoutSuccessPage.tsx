@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuthStore, getTokenFromCookie } from '@/store/useAuthStore';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
-const TENANT   = import.meta.env.VITE_TENANT_ID ?? 'contracts';
 
 export function CheckoutSuccessPage() {
   const navigate       = useNavigate();
@@ -17,9 +16,9 @@ export function CheckoutSuccessPage() {
     const transactionId = params.get('id') ?? params.get('transaction_id');
     if (!transactionId) { setStatus('error'); setMsg('No se encontró ID de transacción.'); return; }
 
-    const token = localStorage.getItem('contracts_token');
-    fetch(`${API_BASE}/api/wompi/validate-payment?transaction_id=${transactionId}`, {
-      headers: { 'X-Tenant-ID': TENANT, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    const token = getTokenFromCookie();
+    fetch(`${API_BASE}/api/wompi/validate-payment?reference=${encodeURIComponent(transactionId)}`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     })
       .then((r) => r.json())
       .then((data) => {
@@ -29,22 +28,24 @@ export function CheckoutSuccessPage() {
           // Refresh user data with updated plan
           if (token) {
             fetch(`${API_BASE}/api/auth/me`, {
-              headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': TENANT },
+              headers: { Authorization: `Bearer ${token}` },
             })
               .then((r) => r.json())
               .then((me) => {
                 if (me.user_id || me.userId) {
-                  login(token, localStorage.getItem('contracts_refresh') ?? '', {
+                  login(token, '', {
                     userId: me.user_id ?? me.userId,
                     email: me.email,
                     name: me.name,
                     role: me.role,
                     plan: 'PRO_LICITADOR',
-                    tenantId: TENANT,
+                    tenantId: 'contracts',
                   });
                 }
               })
-              .catch(() => {});
+              .catch((err) => {
+                if (import.meta.env.DEV) console.error('Failed to refresh user after payment:', err);
+              });
           }
           setTimeout(() => navigate('/dashboard'), 3500);
         } else {
@@ -53,7 +54,7 @@ export function CheckoutSuccessPage() {
         }
       })
       .catch(() => { setStatus('error'); setMsg('Error verificando el pago.'); });
-  }, []);
+  }, [params, login, navigate]);
 
   return (
     <div className="min-h-screen bg-brand-navy flex items-center justify-center px-4">

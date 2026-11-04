@@ -8,6 +8,7 @@ supports exponential-backoff retry on 429 / transient errors.
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -101,7 +102,7 @@ def _normalize_row(row: dict[str, Any]) -> SecopProcess | None:
         try:
             fecha = datetime.fromisoformat(fecha_raw.replace("Z", "+00:00"))
         except (ValueError, AttributeError):
-            fecha = datetime.now(tz=timezone.utc)
+            fecha = datetime(2000, 1, 1, tzinfo=timezone.utc)  # sentinel: missing date
 
         # precio_base comes as a string
         precio_raw = row.get("precio_base")
@@ -182,7 +183,6 @@ class SecopSodaGateway(ISecopGateway):
                 if response.status_code == 429:
                     wait = 2 ** attempt
                     logger.warning("SECOP rate limited, waiting %ss (attempt %d)", wait, attempt + 1)
-                    import asyncio
                     await asyncio.sleep(wait)
                     continue
                 response.raise_for_status()
@@ -195,7 +195,6 @@ class SecopSodaGateway(ISecopGateway):
                 if attempt == retries - 1:
                     logger.error("SECOP request failed: %s", exc)
                     raise
-                import asyncio
                 await asyncio.sleep(2 ** attempt)
         return []
 
@@ -216,7 +215,6 @@ class SecopSodaGateway(ISecopGateway):
             base_params["$q"] = filters.query
 
         # Fetch results and total count in parallel
-        import asyncio
         count_params = {"$select": "count(*)", "$limit": 1}
         if where_str:
             count_params["$where"] = where_str

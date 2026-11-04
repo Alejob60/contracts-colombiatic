@@ -30,8 +30,8 @@ export const useAuthStore = create<AuthStore>()(
       login: (token, refresh, user) => {
         const isPro = user.plan === 'PRO_LICITADOR' || user.role === 'PRO';
         const maxAge = 7 * 24 * 3600;
-        document.cookie = `contracts_token=${token}; max-age=${maxAge}; path=/; SameSite=Lax`;
-        document.cookie = `contracts_refresh=${refresh}; max-age=${maxAge}; path=/; SameSite=Lax`;
+        document.cookie = `contracts_token=${token}; max-age=${maxAge}; path=/; SameSite=Lax; Secure`;
+        document.cookie = `contracts_refresh=${refresh}; max-age=${maxAge}; path=/; SameSite=Lax; Secure`;
         set({ user, token, isPro, isAuth: true });
       },
 
@@ -43,17 +43,27 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'contracts_auth_v1',
-      partialState: (state) => ({
+      partialize: (state) => ({
         user:   state.user,
         token:  state.token,
         isPro:  state.isPro,
         isAuth: state.isAuth,
       }),
-    } as Parameters<typeof persist>[1],
+    },
   ),
 );
 
 export function getTokenFromCookie(): string | null {
-  const match = document.cookie.match(/contracts_token=([^;]+)/);
-  return match ? match[1] : localStorage.getItem('contracts_token');
+  // First try the cookie
+  const cookieMatch = document.cookie.match(/contracts_token=([^;]+)/);
+  if (cookieMatch) return cookieMatch[1];
+  // Fallback: read from Zustand persisted store
+  try {
+    const stored = localStorage.getItem('contracts_auth_v1');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed?.state?.token ?? null;
+    }
+  } catch { /* corrupt localStorage — non-critical */ }
+  return null;
 }

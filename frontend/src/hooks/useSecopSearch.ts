@@ -75,7 +75,7 @@ export function useSecopSearch(): UseSecopSearchReturn {
         setData(json as SecopSearchResult);
       } catch (err) {
         setError('Error al conectar con el servidor. Intenta de nuevo.');
-        console.error('SECOP search error:', err);
+        if (import.meta.env.DEV) console.error('SECOP search error:', err);
       } finally {
         setLoading(false);
       }

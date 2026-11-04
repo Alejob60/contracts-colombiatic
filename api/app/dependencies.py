@@ -131,6 +131,6 @@ async def require_pro(
     if plan_tier != "PRO_LICITADOR":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Plan 'PRO_LICITADOR' required; current plan: '{plan_tier}'",
+            detail="Se requiere una suscripción activa para acceder a este recurso.",
         )
     return user
