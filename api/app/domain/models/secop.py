@@ -20,6 +20,7 @@ class SecopFilter(BaseModel):
 
     query: Optional[str] = None
     departamento: Optional[str] = None
+    municipio: Optional[str] = None       # ciudad_entidad — cascades from departamento
     modalidad: Optional[str] = None
     tipo_contrato: Optional[str] = None
     estado: Optional[str] = None

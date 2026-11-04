@@ -50,6 +50,9 @@ def _build_where(f: SecopFilter) -> list[str]:
     if f.departamento:
         safe = f.departamento.replace("'", "''")
         clauses.append(f"departamento_entidad='{safe}'")
+    if f.municipio:
+        safe = f.municipio.replace("'", "''")
+        clauses.append(f"ciudad_entidad='{safe}'")
     if f.modalidad:
         safe = f.modalidad.replace("'", "''")
         clauses.append(f"modalidad_de_contratacion='{safe}'")

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Filter, X } from 'lucide-react';
 import { DEPARTAMENTOS } from '@/lib/constants/departments';
 import { MODALIDADES } from '@/lib/constants/modalities';
+import { getMunicipalitiesByDepartment } from '@/lib/constants/municipalities';
 
 export interface FilterValues {
   departamento: string;
+  municipio: string;
   modalidad: string;
   tipo_contrato: string;
   precio_min: string;
@@ -13,6 +15,7 @@ export interface FilterValues {
 
 const EMPTY_FILTERS: FilterValues = {
   departamento: '',
+  municipio: '',
   modalidad: '',
   tipo_contrato: '',
   precio_min: '',
@@ -37,6 +40,23 @@ interface FilterPanelProps {
 
 export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
   const [values, setValues] = useState<FilterValues>({ ...EMPTY_FILTERS, ...initialValues });
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
+
+  // Cascade: when department changes, repopulate municipalities and clear selected municipio
+  useEffect(() => {
+    if (values.departamento) {
+      const munis = getMunicipalitiesByDepartment(values.departamento);
+      setMunicipalities(munis);
+      // Only clear municipio if the current one isn't in the new list
+      if (!munis.includes(values.municipio)) {
+        setValues((v) => ({ ...v, municipio: '' }));
+      }
+    } else {
+      setMunicipalities([]);
+      setValues((v) => ({ ...v, municipio: '' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.departamento]);
 
   const set = (key: keyof FilterValues) => (
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
@@ -57,8 +77,9 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
   return (
     <form
       onSubmit={handleApply}
-      className="bg-brand-card border border-white/8 rounded-2xl p-5 space-y-4"
+      className="bg-[#0F1929] border border-white/8 rounded-2xl p-5 space-y-4"
     >
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-white font-semibold text-sm flex items-center gap-2">
           <Filter className="w-4 h-4 text-emerald-400" />
@@ -78,7 +99,7 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
 
       {/* Departamento */}
       <div>
-        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider">
+        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider font-medium">
           Departamento
         </label>
         <select
@@ -86,9 +107,9 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
           onChange={set('departamento')}
           className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
             focus:outline-none focus:border-emerald-500/50 transition-colors
-            [&>option]:bg-brand-dark [&>option]:text-white"
+            [&>option]:bg-[#0F1929] [&>option]:text-white"
         >
-          <option value="">Todos</option>
+          <option value="">Todos los departamentos</option>
           {DEPARTAMENTOS.map((d) => (
             <option key={d.code} value={d.name}>
               {d.name}
@@ -97,9 +118,46 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
         </select>
       </div>
 
+      {/* Municipio — cascades from departamento */}
+      <div>
+        <label className={`block text-xs mb-1.5 uppercase tracking-wider font-medium transition-colors ${
+          values.departamento ? 'text-stone-500' : 'text-stone-700'
+        }`}>
+          Municipio
+          {!values.departamento && (
+            <span className="ml-1 text-stone-700 normal-case font-normal">
+              · selecciona un departamento
+            </span>
+          )}
+        </label>
+        <select
+          value={values.municipio}
+          onChange={set('municipio')}
+          disabled={!values.departamento || municipalities.length === 0}
+          className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm
+            focus:outline-none focus:border-emerald-500/50 transition-colors
+            disabled:opacity-40 disabled:cursor-not-allowed
+            [&>option]:bg-[#0F1929] [&>option]:text-white
+            text-white"
+        >
+          <option value="">
+            {!values.departamento
+              ? 'Selecciona un departamento primero'
+              : municipalities.length === 0
+              ? 'Sin municipios disponibles'
+              : 'Todos los municipios'}
+          </option>
+          {municipalities.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Modalidad */}
       <div>
-        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider">
+        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider font-medium">
           Modalidad
         </label>
         <select
@@ -107,7 +165,7 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
           onChange={set('modalidad')}
           className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
             focus:outline-none focus:border-emerald-500/50 transition-colors
-            [&>option]:bg-brand-dark [&>option]:text-white"
+            [&>option]:bg-[#0F1929] [&>option]:text-white"
         >
           <option value="">Todas</option>
           {MODALIDADES.map((m) => (
@@ -120,7 +178,7 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
 
       {/* Tipo de contrato */}
       <div>
-        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider">
+        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider font-medium">
           Tipo de contrato
         </label>
         <select
@@ -128,7 +186,7 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
           onChange={set('tipo_contrato')}
           className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
             focus:outline-none focus:border-emerald-500/50 transition-colors
-            [&>option]:bg-brand-dark [&>option]:text-white"
+            [&>option]:bg-[#0F1929] [&>option]:text-white"
         >
           <option value="">Todos</option>
           {TIPOS_CONTRATO.map((t) => (
@@ -141,7 +199,7 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
 
       {/* Rango de presupuesto */}
       <div>
-        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider">
+        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider font-medium">
           Presupuesto (COP)
         </label>
         <div className="flex gap-2">

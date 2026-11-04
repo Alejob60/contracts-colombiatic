@@ -40,6 +40,7 @@ async def search_secop(
     q: Annotated[str | None, Query(description="Texto libre")] = None,
     # ── Filters ───────────────────────────────────────────────────────
     departamento: Annotated[str | None, Query()] = None,
+    municipio: Annotated[str | None, Query(description="Ciudad — usar junto con departamento")] = None,
     modalidad: Annotated[str | None, Query()] = None,
     tipo_contrato: Annotated[str | None, Query()] = None,
     estado: Annotated[str | None, Query()] = None,
@@ -71,6 +72,7 @@ async def search_secop(
     filters = SecopFilter(
         query=q,
         departamento=departamento,
+        municipio=municipio,
         modalidad=modalidad,
         tipo_contrato=tipo_contrato,
         estado=estado,

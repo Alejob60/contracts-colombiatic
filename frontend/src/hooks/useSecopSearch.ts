@@ -55,6 +55,7 @@ export function useSecopSearch(): UseSecopSearchReturn {
       const params = new URLSearchParams();
       if (query) params.set('q', query);
       if (filters.departamento) params.set('departamento', filters.departamento);
+      if (filters.municipio) params.set('municipio', filters.municipio);
       if (filters.modalidad) params.set('modalidad', filters.modalidad);
       if (filters.tipo_contrato) params.set('tipo_contrato', filters.tipo_contrato);
       if (filters.precio_min) params.set('precio_min', filters.precio_min);
