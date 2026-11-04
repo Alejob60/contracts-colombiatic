@@ -137,7 +137,9 @@ export function SearchPage() {
               </p>
               {data && !data.is_gated && data.remaining_free_searches < 3 && (
                 <span className="text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-1 rounded-full">
-                  {data.remaining_free_searches} búsqueda{data.remaining_free_searches !== 1 ? 's' : ''} gratis restante{data.remaining_free_searches !== 1 ? 's' : ''}
+                  {data.remaining_free_searches === 0
+                    ? 'Búsquedas gratuitas agotadas — activa Plan PRO'
+                    : `${data.remaining_free_searches} búsqueda${data.remaining_free_searches !== 1 ? 's' : ''} gratuita${data.remaining_free_searches !== 1 ? 's' : ''} restante${data.remaining_free_searches !== 1 ? 's' : ''}`}
                 </span>
               )}
             </div>

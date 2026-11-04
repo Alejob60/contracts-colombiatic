@@ -53,7 +53,7 @@ export const CONTRACTS_PRICING = {
     'Red de consorcios B2B',
   ],
   freemium: {
-    /** Number of free searches before requiring subscription */
+    /** 3 free searches per IP total — no daily reset. Must subscribe after. */
     maxFreeSearches: 3,
     /** Fields blurred for non-subscribers */
     blurredFields: ['descripcion', 'urlSecop', 'precioBase', 'matchScore'],

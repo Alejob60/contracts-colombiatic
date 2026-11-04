@@ -5,7 +5,7 @@ import type { BillingCycle } from '@/lib/constants/pricing';
 import { Check } from 'lucide-react';
 
 const FREE_FEATURES = [
-  '3 búsquedas por día',
+  '3 búsquedas gratuitas',
   'Vista parcial de resultados',
   'Nombre de entidad y departamento',
 ];
@@ -74,7 +74,7 @@ export function PricingPage() {
               </thead>
               <tbody>
                 {[
-                  ['Búsquedas SECOP II', '3/día', 'Ilimitadas'],
+                  ['Búsquedas SECOP II', '3 gratis', 'Ilimitadas'],
                   ['Detalle de procesos', 'Parcial', 'Completo'],
                   ['Links directos SECOP', '—', '✓'],
                   ['Presupuesto del proceso', '—', '✓'],

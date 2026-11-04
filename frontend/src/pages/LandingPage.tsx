@@ -79,7 +79,7 @@ const SERVICES = [
     features: [
       'Búsqueda en texto libre y por código UNSPSC',
       'Filtros avanzados por departamento y modalidad',
-      '3 búsquedas gratuitas por día, sin registro',
+      '3 búsquedas gratuitas por IP, sin registro',
       'Resultados completos con enlaces directos SECOP II',
     ],
   },
@@ -156,7 +156,7 @@ const SERVICES = [
 ];
 
 const HOW_IT_WORKS = [
-  { step: '01', icon: Search, title: 'Busca sin registro', description: 'Escribe tu actividad —"desarrollo de software", "obra civil", "suministro equipos"— y el sistema filtra los procesos abiertos en SECOP II. 3 búsquedas gratis.' },
+  { step: '01', icon: Search, title: 'Busca sin registro', description: 'Escribe tu actividad —"desarrollo de software", "obra civil", "suministro equipos"— y el sistema filtra los procesos abiertos en SECOP II. 3 búsquedas gratuitas para probar.' },
   { step: '02', icon: Bot, title: 'La IA evalúa el pliego', description: 'Con Plan PRO, el agente cruza el pliego de condiciones con tu RUP y documentos corporativos. Resultado: Match Score, checklist y plan de acción.' },
   { step: '03', icon: Bell, title: 'Recibe alertas automáticas', description: 'Configura tu perfil una vez. Cada vez que aparezca un proceso compatible, te llega la alerta a WhatsApp antes de que lo vea la competencia.' },
   { step: '04', icon: RefreshCw, title: 'Gestiona y reporta', description: 'Con el módulo Reportar (próximamente) sincronizas tus contratos activos con SIA OBSERVA automáticamente, sin re-digitar un solo campo.' },
@@ -184,7 +184,7 @@ const FAQS = [
   },
   {
     q: '¿Es gratis?',
-    a: 'Sí, tienes 3 búsquedas gratuitas por día sin registro. Para búsquedas ilimitadas, el evaluador IA, las alertas y los demás módulos, el Plan PRO Licitador cuesta $149.000 COP/mes o $1.431.600/año (20% de descuento).',
+    a: 'Sí, tienes 3 búsquedas gratuitas para probar la plataforma. Una vez usadas, activa el Plan PRO para búsquedas ilimitadas, evaluador IA, alertas y todos los módulos. El Plan PRO Licitador cuesta $149.000 COP/mes o $1.431.600/año (20% de descuento).',
   },
   {
     q: '¿Qué pasa con mis documentos corporativos?',
@@ -226,7 +226,7 @@ export function LandingPage() {
             </p>
             <p className="text-stone-500 text-sm mb-10">
               <span className="text-emerald-400 font-medium">3 búsquedas gratis</span>
-              {' '}· Sin tarjeta de crédito · Para contratistas colombianos
+              {' '}· Sin tarjeta · Activa el Plan PRO cuando quieras
             </p>
 
             <div className="max-w-2xl mx-auto mb-10">
@@ -480,7 +480,7 @@ export function LandingPage() {
             Empieza a encontrar contratos hoy
           </h2>
           <p className="text-stone-400 text-lg mb-8">
-            3 búsquedas gratuitas. Sin tarjeta de crédito. Sin instalación.
+            3 búsquedas gratuitas para probar. Sin tarjeta de crédito.
           </p>
           <Link to="/buscar"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-400

@@ -86,13 +86,14 @@ class RedisCache:
         return f"contracts:freemium:{safe_ip}:{safe_sid}"
 
     async def increment_search_count(self, ip: str, session_id: str) -> int:
-        """Atomically increment and return the new count. Sets TTL on first access."""
+        """Atomically increment and return the new count.
+
+        No TTL — counter persists permanently per IP.
+        Once the free limit is reached the user must subscribe.
+        """
         key = self._freemium_key(ip, session_id)
         try:
             count = await self._r.incr(key)
-            if count == 1:
-                # First access — start the 24 h rolling window
-                await self._r.expire(key, self._ttl_freemium)
             return int(count)
         except Exception as exc:
             logger.warning("Freemium increment error: %s", exc)
