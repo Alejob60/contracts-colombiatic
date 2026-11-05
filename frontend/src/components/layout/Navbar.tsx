@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, FileSearch, LogOut, User } from 'lucide-react';
+import { Menu, X, FileSearch, LogOut, LayoutDashboard, Zap } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 const NAV_LINKS = [
@@ -15,7 +15,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { isAuth, isPro, user, logout } = useAuthStore();
+  const { isAuthenticated, isPro, user, logout } = useAuthStore();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -72,7 +72,7 @@ export function Navbar() {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
-            {isAuth ? (
+            {isAuthenticated ? (
               <>
                 {!isPro && (
                   <Link to="/checkout"

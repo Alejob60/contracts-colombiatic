@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Check, Loader2, CreditCard } from 'lucide-react';
-import { useAuthStore, getTokenFromCookie } from '@/store/useAuthStore';
+import { useState } from 'react';
+import { Zap, Check, Loader2, CreditCard, Lock } from 'lucide-react';
+import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
 import { CONTRACTS_PRICING, type BillingCycle } from '@/lib/constants/pricing';
 import { BillingToggle } from '@/components/pricing/BillingToggle';
 
@@ -15,23 +15,26 @@ function formatCOP(n: number) {
 }
 
 export function CheckoutPage() {
-  const navigate   = useNavigate();
-  const { isAuth, user } = useAuthStore();
-  const [cycle,    setCycle]   = useState<BillingCycle>('MONTHLY');
-  const [loading,  setLoading] = useState(false);
-  const [error,    setError]   = useState('');
+  const navigate = useNavigate();
+  const { isAuthenticated, isPro, user } = useAuthStore();
+  const [cycle,   setCycle]   = useState<BillingCycle>('MONTHLY');
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
 
   const price = cycle === 'MONTHLY'
     ? CONTRACTS_PRICING.prices.monthly
     : CONTRACTS_PRICING.prices.yearly;
 
   const handleCheckout = async () => {
-    if (!isAuth) { navigate('/auth'); return; }
+    if (!isAuthenticated) {
+      navigate('/auth?redirect=/checkout');
+      return;
+    }
     setError(''); setLoading(true);
     try {
-      const token = getTokenFromCookie();
+      const token = getContractsToken();
       const params = new URLSearchParams({
-        plan: 'pro_licitador',
+        plan:  'pro_licitador',
         email: user?.email ?? '',
         name:  user?.name  ?? '',
       });
@@ -41,7 +44,7 @@ export function CheckoutPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? 'Error obteniendo datos de pago');
 
-      // Build Wompi hosted checkout URL
+      // Build Wompi hosted checkout URL and redirect
       const wompiParams = new URLSearchParams({
         'public-key':          data['public-key'],
         'currency':            data['currency'],
@@ -51,6 +54,7 @@ export function CheckoutPage() {
         'redirect-url':        data['redirect-url'],
         'customer-email':      data['customer-email'] ?? user?.email ?? '',
       });
+      if (user?.name) wompiParams.set('customer-data:full-name', user.name);
 
       window.location.href = `https://checkout.wompi.co/p/?${wompiParams.toString()}`;
     } catch (err) {
@@ -67,8 +71,18 @@ export function CheckoutPage() {
             <CreditCard className="w-7 h-7 text-emerald-400" />
           </div>
           <h1 className="text-white font-bold text-2xl mb-1">Activar Plan PRO</h1>
-          <p className="text-stone-400 text-sm">Búsquedas ilimitadas + evaluador IA</p>
+          <p className="text-stone-400 text-sm">Búsquedas ilimitadas + evaluador IA + alertas</p>
         </div>
+
+        {isPro && (
+          <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
+            <p className="text-emerald-400 font-semibold">✓ Ya tienes el Plan PRO activo</p>
+            <button onClick={() => navigate('/dashboard')}
+              className="mt-2 text-sm text-stone-400 hover:text-white underline">
+              Ir al Dashboard →
+            </button>
+          </div>
+        )}
 
         <div className="flex justify-center mb-6">
           <BillingToggle cycle={cycle} onChange={setCycle} />
@@ -89,11 +103,11 @@ export function CheckoutPage() {
               {formatCOP(CONTRACTS_PRICING.prices.yearly.cop)} facturado anualmente
             </p>
           )}
-          <p className="text-emerald-400 text-xs font-medium">
-            {cycle === 'YEARLY' ? '💰 Ahorras 20% vs mensual' : 'Cancela cuando quieras · Sandbox Wompi'}
+          <p className="text-emerald-400 text-xs font-medium mb-4">
+            {cycle === 'YEARLY' ? '💰 Ahorras 20% vs mensual' : 'Cancela cuando quieras'}
           </p>
 
-          <ul className="mt-4 space-y-2">
+          <ul className="space-y-2">
             {CONTRACTS_PRICING.features.map((f) => (
               <li key={f} className="flex items-start gap-2 text-sm text-stone-300">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -110,27 +124,36 @@ export function CheckoutPage() {
           </div>
         )}
 
-        {!isAuth ? (
+        {!isAuthenticated ? (
           <div className="space-y-3">
-            <button onClick={() => navigate('/auth')}
+            <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+              <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+              <p className="text-amber-300 text-sm">Necesitas una cuenta para pagar</p>
+            </div>
+            <button onClick={() => navigate('/auth?redirect=/checkout')}
               className="w-full bg-gradient-to-r from-emerald-500 to-teal-400 text-white
                 font-bold py-4 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
               <Zap className="w-5 h-5" />
               Crear cuenta y pagar
             </button>
+            <button onClick={() => navigate('/auth?redirect=/checkout')}
+              className="w-full border border-white/10 text-stone-300 hover:text-white
+                py-3 rounded-xl text-sm font-medium transition-colors">
+              Ya tengo cuenta — Iniciar sesión
+            </button>
           </div>
         ) : (
-          <button onClick={handleCheckout} disabled={loading}
+          <button onClick={handleCheckout} disabled={loading || isPro}
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-400 text-white
               font-bold py-4 rounded-xl hover:opacity-90 disabled:opacity-50
               transition-all flex items-center justify-center gap-2">
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-            {loading ? 'Cargando Wompi...' : `Pagar ${formatCOP(price.cop)}`}
+            {loading ? 'Cargando Wompi...' : `Pagar con Wompi — ${formatCOP(price.cop)}`}
           </button>
         )}
 
         <p className="text-center text-stone-600 text-xs mt-4">
-          Entorno sandbox Wompi (Bancolombia) · SSL 256-bit · No se cobra dinero real
+          Procesado por Wompi (Bancolombia) · SSL 256-bit · Sandbox
         </p>
       </div>
     </div>

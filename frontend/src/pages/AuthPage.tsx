@@ -1,78 +1,85 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Mail, Lock, User, Building2 } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
-
-async function apiPost(path: string, body: object) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message ?? `Error ${res.status}`);
-  return data;
-}
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, Building2, FileSearch } from 'lucide-react';
+import { useAuthStore, apiLogin, apiRegister } from '@/store/useAuthStore';
 
 export function AuthPage() {
-  const navigate  = useNavigate();
-  const { login } = useAuthStore();
+  const navigate   = useNavigate();
+  const [params]   = useSearchParams();
+  const { login }  = useAuthStore();
+
   const [tab,     setTab]    = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error,   setError]  = useState('');
   const [showPwd, setShowPwd] = useState(false);
 
-  const [email,    setEmail]   = useState('');
+  // Login
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
-  const [name,     setName]    = useState('');
-  const [empresa,  setEmpresa] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPwd,   setRegPwd]  = useState('');
+
+  // Register
+  const [rName,    setRName]    = useState('');
+  const [rEmpresa, setREmpresa] = useState('');
+  const [rEmail,   setREmail]   = useState('');
+  const [rPwd,     setRPwd]     = useState('');
+
+  const redirectTo = params.get('redirect') ?? '/dashboard';
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(''); setLoading(true);
+    e.preventDefault();
+    setError(''); setLoading(true);
     try {
-      const d = await apiPost('/api/auth/login', { email, password });
-      login(d.token ?? d.access_token, d.refreshToken ?? '', {
-        userId: d.userId, email: d.email, name: d.name,
-        role: d.role, plan: d.plan ?? 'FREE', tenantId: d.tenantId,
+      const d = await apiLogin(email, password);
+      login(d.token, d.refreshToken, {
+        userId:   d.userId,
+        name:     d.name,
+        email:    d.email,
+        role:     d.role,
+        plan:     d.plan ?? d.planTier ?? 'FREE',
+        planTier: d.planTier,
+        tenantId: d.tenantId ?? 'contracts',
       });
-      navigate('/dashboard');
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
     } finally { setLoading(false); }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(''); setLoading(true);
+    e.preventDefault();
+    setError(''); setLoading(true);
     try {
-      await apiPost('/api/auth/register', {
-        name, email: regEmail, password: regPwd,
-        companyName: empresa, tenantId: 'contracts',
+      // 1. Create account
+      await apiRegister(rName, rEmail, rPwd);
+      // 2. Auto-login to get token
+      const d = await apiLogin(rEmail, rPwd);
+      login(d.token, d.refreshToken, {
+        userId:   d.userId,
+        name:     d.name,
+        email:    d.email,
+        role:     d.role,
+        plan:     d.plan ?? d.planTier ?? 'FREE',
+        planTier: d.planTier,
+        tenantId: d.tenantId ?? 'contracts',
       });
-      const d = await apiPost('/api/auth/login', { email: regEmail, password: regPwd });
-      login(d.token ?? d.access_token, d.refreshToken ?? '', {
-        userId: d.userId, email: d.email, name: d.name,
-        role: d.role, plan: d.plan ?? 'FREE', tenantId: d.tenantId,
-      });
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarse');
     } finally { setLoading(false); }
   };
 
-  const inputClass = `w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3
+  const ic = `w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3
     text-white placeholder-stone-600 text-sm focus:outline-none focus:border-emerald-500/50 transition-colors`;
 
   return (
     <div className="min-h-screen bg-brand-navy flex items-center justify-center px-4 pt-14">
       <div className="w-full max-w-sm">
+
+        {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-3">
+          <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center">
-              <span className="text-white font-bold">C</span>
+              <FileSearch className="w-4 h-4 text-white" />
             </div>
             <span className="text-white font-semibold text-lg">
               ColombiaTIC <span className="text-emerald-400">Contracts</span>
@@ -83,8 +90,9 @@ export function AuthPage() {
           </p>
         </div>
 
+        {/* Tabs */}
         <div className="flex bg-white/5 rounded-xl p-1 mb-6">
-          {(['login','register'] as const).map((t) => (
+          {(['login', 'register'] as const).map((t) => (
             <button key={t} onClick={() => { setTab(t); setError(''); }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                 tab === t ? 'bg-emerald-500 text-white' : 'text-stone-400 hover:text-white'
@@ -94,24 +102,26 @@ export function AuthPage() {
           ))}
         </div>
 
+        {/* Error */}
         {error && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
             {error}
           </div>
         )}
 
+        {/* ── LOGIN ── */}
         {tab === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
               <input type="email" placeholder="correo@empresa.com" value={email}
-                onChange={(e) => setEmail(e.target.value)} required className={inputClass} />
+                onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={ic} />
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
               <input type={showPwd ? 'text' : 'password'} placeholder="Contraseña"
                 value={password} onChange={(e) => setPassword(e.target.value)} required
-                className={`${inputClass} pr-10`} />
+                autoComplete="current-password" className={`${ic} pr-10`} />
               <button type="button" onClick={() => setShowPwd(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-300">
                 {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -126,28 +136,29 @@ export function AuthPage() {
           </form>
         )}
 
+        {/* ── REGISTER ── */}
         {tab === 'register' && (
           <form onSubmit={handleRegister} className="space-y-3">
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
-              <input type="text" placeholder="Nombre completo" value={name}
-                onChange={(e) => setName(e.target.value)} required className={inputClass} />
+              <input type="text" placeholder="Nombre completo" value={rName}
+                onChange={(e) => setRName(e.target.value)} required className={ic} />
             </div>
             <div className="relative">
               <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
-              <input type="text" placeholder="Nombre de la empresa (opcional)" value={empresa}
-                onChange={(e) => setEmpresa(e.target.value)} className={inputClass} />
+              <input type="text" placeholder="Nombre de la empresa (opcional)" value={rEmpresa}
+                onChange={(e) => setREmpresa(e.target.value)} className={ic} />
             </div>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
-              <input type="email" placeholder="correo@empresa.com" value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)} required className={inputClass} />
+              <input type="email" placeholder="correo@empresa.com" value={rEmail}
+                onChange={(e) => setREmail(e.target.value)} required autoComplete="email" className={ic} />
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
               <input type={showPwd ? 'text' : 'password'} placeholder="Contraseña (mín. 6 caracteres)"
-                value={regPwd} onChange={(e) => setRegPwd(e.target.value)}
-                required minLength={6} className={`${inputClass} pr-10`} />
+                value={rPwd} onChange={(e) => setRPwd(e.target.value)} required minLength={6}
+                autoComplete="new-password" className={`${ic} pr-10`} />
               <button type="button" onClick={() => setShowPwd(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-300">
                 {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -170,7 +181,7 @@ export function AuthPage() {
 
         <div className="mt-6 text-center">
           <Link to="/pricing" className="text-xs text-stone-600 hover:text-emerald-400 transition-colors">
-            Ver Plan PRO → $149.000/mes
+            Ver Plan PRO Licitador → $149.000/mes
           </Link>
         </div>
       </div>
