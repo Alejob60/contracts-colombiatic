@@ -10,12 +10,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MapPin, Building2, Tag, Calendar, DollarSign,
-  ExternalLink, Lock, Bookmark, Loader2, Check, Bot,
+  Lock, Bookmark, Loader2, Check, Bot,
 } from 'lucide-react';
 import { formatCOP } from '@/lib/utils/formatCurrency';
 import { getContractsToken, useAuthStore } from '@/store/useAuthStore';
 import { saveProcess, CompanyApiError } from '@/lib/api/company';
-import { analyzeProcess, EvaluationApiError } from '@/lib/api/evaluation';
+import { ProcessDetailModal } from '@/components/search/ProcessDetailModal';
 import type { SecopProcessCard } from '@/types/secop';
 import type { SaveProcessPayload } from '@/types/company';
 
@@ -48,15 +48,13 @@ function estadoColor(estado: string): string {
 export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCardProps) {
   const navigate = useNavigate();
   const { isPro } = useAuthStore();
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
-  const [evalStatus, setEvalStatus] = useState<EvalActionStatus>('idle');
+  const [saveStatus,  setSaveStatus]  = useState<SaveStatus>('idle');
+  const [evalStatus,  setEvalStatus]  = useState<EvalActionStatus>('idle');
+  const [showDetail,  setShowDetail]  = useState(false);
 
   const handleView = () => {
     if (isBlurred) { onUpgrade?.(); return; }
-    // Open the official SECOP II process page directly
-    if (process.url_proceso) {
-      window.open(process.url_proceso, '_blank', 'noopener,noreferrer');
-    }
+    setShowDetail(true);  // Open detail modal within our app
   };
 
   const handleSave = async () => {
@@ -123,6 +121,7 @@ export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCard
   };
 
   return (
+    <>
     <div
       className={`relative bg-white/[0.02] border border-white/8 rounded-xl sm:rounded-2xl p-4 sm:p-5
         transition-all active:scale-[0.99]
@@ -289,5 +288,14 @@ export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCard
         </div>
       )}
     </div>
+
+    {/* Process detail modal — opens within our app, NOT community.secop.gov.co */}
+    {showDetail && (
+      <ProcessDetailModal
+        process={process}
+        onClose={() => setShowDetail(false)}
+      />
+    )}
+    </>
   );
 }

@@ -289,18 +289,18 @@ async def evaluate_bid(
 
         process_desc = _build_process_description(process)
 
-        # ── 2. Retrieve company context via RAG ──────────────────────
+        # ── 2. Retrieve company context via RAG (skip if no profile) ─────
         rag_context = await _retrieve_rag_context(
             process_desc[:_EMBED_QUERY_MAX_CHARS],
-            company_id,
+            company_id or "",   # empty string = no docs, graceful fallback
             settings,
-        )
+        ) if company_id else "(No hay perfil de empresa configurado — sube tu RUP y documentos para análisis personalizado)"
 
         # ── 3. Get company profile ───────────────────────────────────
         company_row = await conn.fetchrow(
             "SELECT * FROM company_profiles WHERE id = $1",
             company_id,
-        )
+        ) if company_id else None
         company_info = _build_company_info(company_row)
 
         # ── 4. Build prompt and call Claude Haiku ────────────────────

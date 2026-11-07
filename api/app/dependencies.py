@@ -139,17 +139,16 @@ async def _is_pro_in_db(user_id: str, settings: Settings, redis: Redis) -> bool:
 
     is_pro = False
     try:
-        # Strip asyncpg driver prefix and search_path for raw asyncpg connection
-        db_url = settings.DATABASE_URL \
-            .replace("postgresql+asyncpg://", "postgresql://") \
-            .split("?")[0]
-
+        # Tables are in public schema (not realculture schema)
+        db_url = (settings.DATABASE_URL
+                  .replace("postgresql+asyncpg://", "postgresql://")
+                  .split("?")[0])
         conn = await asyncpg.connect(db_url, timeout=5)
         try:
             row = await conn.fetchrow(
                 """
-                SELECT 1 FROM realculture.subscriptions
-                WHERE user_id = $1
+                SELECT 1 FROM public.subscriptions
+                WHERE user_id = $1::uuid
                   AND status   = 'ACTIVE'
                   AND plan_tier = 'PRO_LICITADOR'
                 LIMIT 1

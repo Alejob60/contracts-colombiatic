@@ -53,12 +53,11 @@ def _user_id(user: dict[str, Any]) -> str:
     return uid
 
 
-async def _get_company_id(user_id: str, settings: Settings) -> str:
+async def _get_company_id(user_id: str, settings: Settings) -> str | None:
     """
-    Look up the company_profiles row for *user_id* and return its ID.
-
-    Raises 400 if no company profile exists — the user must create one
-    before running evaluations (we need company docs for RAG).
+    Look up the company_profiles row for *user_id*.
+    Returns None (not an error) when no profile exists — the evaluation
+    will proceed without RAG context from company documents.
     """
     conn = await asyncpg.connect(
         get_pg_url(settings),
@@ -72,12 +71,7 @@ async def _get_company_id(user_id: str, settings: Settings) -> str:
     finally:
         await conn.close()
 
-    if not row:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Crea tu perfil de empresa antes de evaluar licitaciones.",
-        )
-    return str(row["id"])
+    return str(row["id"]) if row else None
 
 
 def _row_to_json(row: asyncpg.Record) -> dict:
