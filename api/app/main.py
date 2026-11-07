@@ -7,6 +7,7 @@ Run locally with:  ``uvicorn app.main:app --reload --port 8100``
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -23,6 +24,7 @@ from app.api.alert_router import router as alert_router
 from app.config import Settings
 from app.infrastructure.db import build_async_engine, build_session_maker
 from app.infrastructure.secop_soda_gateway import SecopSodaGateway
+from app.workers.secop_sync_worker import run_alert_worker
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +40,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Manage shared resources across the application lifetime.
 
-    * **Startup**: create Redis pool + SQLAlchemy async engine.
-    * **Shutdown**: close both cleanly so connections are not leaked.
+    * **Startup**: create Redis pool + SQLAlchemy async engine + alert worker.
+    * **Shutdown**: cancel worker, close all connections cleanly.
     """
     settings = Settings()
 
@@ -60,14 +62,41 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.db_session_maker = build_session_maker(engine)
     logger.info("Database engine created")
 
+    # ── Schema migration: add keywords column (idempotent) ────────────
+    try:
+        import asyncpg
+        from app.application.manage_company import get_pg_url
+        _conn = await asyncpg.connect(get_pg_url(settings))
+        try:
+            await _conn.execute(
+                "ALTER TABLE contracts.alert_configs "
+                "ADD COLUMN IF NOT EXISTS keywords TEXT"
+            )
+        finally:
+            await _conn.close()
+    except Exception as _mig_exc:
+        logger.warning("alert_configs keyword migration skipped: %s", _mig_exc)
+
     # ── SECOP SODA Gateway ────────────────────────────────────────────
     secop_gateway = SecopSodaGateway(settings)
     app.state.secop_gateway = secop_gateway
     logger.info("SECOP SODA gateway initialised — endpoint: %s", settings.SECOP_API_URL)
 
+    # ── Alert worker ──────────────────────────────────────────────────
+    worker_task = asyncio.create_task(
+        run_alert_worker(settings, secop_gateway),
+        name="alert-worker",
+    )
+
     yield  # ← application runs here
 
     # ── Shutdown ──────────────────────────────────────────────────────
+    worker_task.cancel()
+    try:
+        await worker_task
+    except asyncio.CancelledError:
+        pass
+
     await secop_gateway.aclose()
     await redis_client.aclose()
     await engine.dispose()

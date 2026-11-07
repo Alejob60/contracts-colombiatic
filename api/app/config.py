@@ -60,3 +60,7 @@ class Settings(BaseSettings):
     # ── Freemium Rate Limiting ───────────────────────────────────────────
     FREEMIUM_MAX_SEARCHES: int = 3          # searches per window for free tier
     FREEMIUM_COUNTER_TTL: int = 86400       # 24 h rolling window in seconds
+
+    # ── Alerts / SES ────────────────────────────────────────────────────
+    SES_FROM_EMAIL: str = "alertas@colombiatic.com.co"
+    ALERT_WORKER_INTERVAL_H: int = 6        # poll SECOP every N hours
