@@ -9,6 +9,7 @@ import { EvaluacionesPage }  from './dashboard/EvaluacionesPage';
 import { AlertasPage }       from './dashboard/AlertasPage';
 import { AnalyticaPage }     from './dashboard/AnalyticaPage';
 import { RedB2BPage }        from './dashboard/RedB2BPage';
+import { WorkspacePage }     from './dashboard/WorkspacePage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -156,6 +157,7 @@ export function DashboardPage() {
           <Route path="alertas"      element={<AlertasPage />} />
           <Route path="analitica"    element={<AnalyticaPage />} />
           <Route path="b2b"          element={<RedB2BPage />} />
+          <Route path="workspace/:procesoId" element={<WorkspacePage />} />
         </Routes>
       </div>
     </div>

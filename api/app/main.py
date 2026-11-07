@@ -23,6 +23,7 @@ from app.api.evaluation_router import router as evaluation_router
 from app.api.alert_router import router as alert_router
 from app.api.analytics_router import router as analytics_router
 from app.api.b2b_router import router as b2b_router
+from app.api.workspace_router import router as workspace_router
 from app.config import Settings
 from app.infrastructure.db import build_async_engine, build_session_maker
 from app.infrastructure.secop_soda_gateway import SecopSodaGateway
@@ -142,6 +143,7 @@ def create_app() -> FastAPI:
     application.include_router(alert_router)
     application.include_router(analytics_router)
     application.include_router(b2b_router)
+    application.include_router(workspace_router)
 
     return application
 

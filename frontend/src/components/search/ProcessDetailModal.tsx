@@ -197,6 +197,15 @@ export function ProcessDetailModal({ process, onClose }: ProcessDetailModalProps
               Activar PRO para evaluar con IA
             </button>
           )}
+          {isPro && (
+            <button onClick={() => { onClose(); navigate(`/dashboard/workspace/${process.proceso_id}`); }}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm
+                text-stone-300 border border-white/10 rounded-xl hover:border-emerald-500/20
+                hover:text-emerald-300 hover:bg-emerald-500/5 transition-colors">
+              <FileText className="w-4 h-4" />
+              Workspace
+            </button>
+          )}
         </div>
       </div>
     </div>
