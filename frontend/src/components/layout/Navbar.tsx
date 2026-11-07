@@ -84,7 +84,7 @@ export function Navbar() {
                 <Link to="/dashboard"
                   className="flex items-center gap-1.5 text-sm text-stone-300 hover:text-white
                     transition-colors px-3 py-1.5">
-                  <User className="w-3.5 h-3.5" />
+                  <LayoutDashboard className="w-3.5 h-3.5" />
                   {user?.name?.split(' ')[0] ?? 'Dashboard'}
                 </Link>
                 <button onClick={() => { logout(); navigate('/'); }}
