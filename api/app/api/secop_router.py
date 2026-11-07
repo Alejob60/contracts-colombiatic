@@ -90,6 +90,18 @@ async def search_secop(
     """
     client_ip = get_client_ip(request)
     plan_tier: str | None = user.get("planTier") if user else None  # type: ignore[union-attr]
+    role: str | None      = user.get("role")     if user else None  # type: ignore[union-attr]
+
+    # ── DB fallback: handle stale JWT (user paid but JWT not refreshed yet) ──
+    # If the JWT says FREE but the user might have just paid via Wompi
+    # (webhook updates DB but old JWT still circulates), check the DB.
+    _PRO = {"PRO_LICITADOR", "PRO"}
+    if plan_tier not in _PRO and role not in _PRO and user:
+        user_id = str(user.get("sub") or user.get("userId") or "")
+        if user_id:
+            from app.dependencies import _is_pro_in_db
+            if await _is_pro_in_db(user_id, settings, request.app.state.redis):
+                plan_tier = "PRO_LICITADOR"
 
     filters = SecopFilter(
         query=q,
