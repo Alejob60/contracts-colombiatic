@@ -133,7 +133,7 @@ async def _is_pro_in_db(user_id: str, settings: Settings, redis: Redis) -> bool:
     try:
         cached = await redis.get(cache_key)
         if cached is not None:
-            return cached == b"1"
+            return cached == "1"
     except Exception:
         pass
 
@@ -144,24 +144,26 @@ async def _is_pro_in_db(user_id: str, settings: Settings, redis: Redis) -> bool:
             .replace("postgresql+asyncpg://", "postgresql://") \
             .split("?")[0]
 
-        conn = await asyncpg.connect(db_url)
-        row = await conn.fetchrow(
-            """
-            SELECT 1 FROM realculture.subscriptions
-            WHERE user_id = $1
-              AND status   = 'ACTIVE'
-              AND plan_tier = 'PRO_LICITADOR'
-            LIMIT 1
-            """,
-            user_id,
-        )
-        await conn.close()
-        is_pro = row is not None
+        conn = await asyncpg.connect(db_url, timeout=5)
+        try:
+            row = await conn.fetchrow(
+                """
+                SELECT 1 FROM realculture.subscriptions
+                WHERE user_id = $1
+                  AND status   = 'ACTIVE'
+                  AND plan_tier = 'PRO_LICITADOR'
+                LIMIT 1
+                """,
+                user_id,
+            )
+            is_pro = row is not None
+        finally:
+            await conn.close()
     except Exception as exc:
         logger.warning("DB pro-check failed for user %s: %s", user_id, exc)
 
     try:
-        await redis.setex(cache_key, _CACHE_TTL, b"1" if is_pro else b"0")
+        await redis.setex(cache_key, _CACHE_TTL, "1" if is_pro else "0")
     except Exception:
         pass
 

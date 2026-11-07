@@ -2,7 +2,7 @@
 ColombiaTIC Contracts API — application entrypoint.
 
 Creates the FastAPI app, wires lifespan (Redis + DB), CORS, and routers.
-Run locally with:  ``uvicorn app.main:app --reload --port 8010``
+Run locally with:  ``uvicorn app.main:app --reload --port 8100``
 """
 
 from __future__ import annotations

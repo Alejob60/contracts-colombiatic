@@ -11,14 +11,14 @@ evalúa factibilidad con IA y ayuda a empresas a ganar licitaciones.
 | Componente | Stack | Puerto | Ruta VM |
 |---|---|---|---|
 | Frontend | Vite + React 18, Tailwind, Framer Motion | `:3300` dev | `/opt/contracts-web/dist` |
-| API SECOP | FastAPI, SQLAlchemy async, pgvector | `:8098` | `/opt/contracts-api` |
+| API SECOP | FastAPI, SQLAlchemy async, pgvector | `:8110` | `/opt/contracts-api` |
 | Auth/Pagos | RealCulture NestJS (compartido) | `:3007` | `/opt/realculture` |
 | Redis | Cache + freemium counter | `:6379` DB 2 | — |
 | PostgreSQL | Schema `contracts` (mismo RDS) | RDS | — |
 | AI | Bedrock: Haiku (evaluador) + Titan Embed v2 | — | — |
 
 ```
-Browser → nginx (443) → /api/v1/* → FastAPI :8098
+Browser → nginx (443) → /api/v1/* → FastAPI :8110
                        → /api/auth/* → NestJS :3007 (X-Tenant-ID: contracts)
                        → /assets/* → nginx static (Vite dist/, agresivo cache)
                        → /* → nginx sirve dist/index.html (SPA fallback)
@@ -75,7 +75,7 @@ cd contracts/api
 python -m venv .venv
 .venv\Scripts\activate
 pip install -e ".[dev]"
-uvicorn app.main:app --reload --port 8098
+uvicorn app.main:app --reload --port 8110
 
 # Frontend
 cd contracts/frontend

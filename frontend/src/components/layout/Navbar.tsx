@@ -150,14 +150,36 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                to="/auth"
-                className="flex items-center justify-center mt-3 py-3 border border-white/10
-                  text-stone-300 rounded-xl text-sm font-medium hover:border-white/20 hover:text-white
-                  transition-colors"
-              >
-                Iniciar sesión
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link to="/dashboard"
+                    className="flex items-center justify-center mt-3 py-3 border border-emerald-500/20
+                      text-emerald-400 rounded-xl text-sm font-medium hover:border-emerald-500/30 transition-colors">
+                    Mi Dashboard
+                  </Link>
+                  {!isPro && (
+                    <Link to="/checkout"
+                      className="flex items-center justify-center mt-2 py-2.5 bg-amber-500/10 border border-amber-500/20
+                        text-amber-400 rounded-xl text-sm font-medium transition-colors">
+                      ⚡ Activar PRO
+                    </Link>
+                  )}
+                  <button onClick={() => { logout(); navigate('/'); }}
+                    className="flex items-center justify-center mt-2 py-2.5 text-stone-500 hover:text-stone-300
+                      text-sm transition-colors w-full">
+                    Cerrar sesión
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="flex items-center justify-center mt-3 py-3 border border-white/10
+                    text-stone-300 rounded-xl text-sm font-medium hover:border-white/20 hover:text-white
+                    transition-colors"
+                >
+                  Iniciar sesión
+                </Link>
+              )}
             </div>
           </motion.div>
         )}

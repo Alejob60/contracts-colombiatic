@@ -74,7 +74,13 @@ export function useSecopSearch(): UseSecopSearchReturn {
         const json = await res.json();
 
         // 402 = freemium gate hit — still set data so UI can show gate modal
-        setData(json as SecopSearchResult);
+        if (res.ok || res.status === 402) {
+          setData(json as SecopSearchResult);
+        } else if (res.status === 401) {
+          setError('Sesión expirada. Vuelve a iniciar sesión.');
+        } else {
+          setError((json as { detail?: string }).detail ?? `Error del servidor (${res.status})`);
+        }
       } catch (err) {
         setError('Error al conectar con el servidor. Intenta de nuevo.');
         if (import.meta.env.DEV) console.error('SECOP search error:', err);

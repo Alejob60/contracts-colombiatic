@@ -71,7 +71,7 @@ export function CheckoutSuccessPage() {
 
       // ── Step 3: Update store with fresh token + PRO status ───────────
       login(freshToken ?? token ?? '', refreshToken ?? '', {
-        userId:   '',
+        userId:   useAuthStore.getState().user?.userId ?? '',
         name:     useAuthStore.getState().user?.name ?? '',
         email:    useAuthStore.getState().user?.email ?? '',
         role:     'PRO',
@@ -92,7 +92,7 @@ export function CheckoutSuccessPage() {
       setTimeout(() => navigate('/dashboard', { replace: true }), 3000);
 
     } catch (err) {
-      console.error('Wompi verification error:', err);
+      if (import.meta.env.DEV) console.error('Wompi verification error:', err);
       setStatus('error');
       setMsg('Error verificando el pago. Por favor contacta soporte.');
     }

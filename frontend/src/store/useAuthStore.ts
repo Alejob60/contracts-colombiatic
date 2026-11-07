@@ -188,34 +188,3 @@ export async function apiRegister(name: string, email: string, password: string)
   return data;
 }
 
-/**
- * After Wompi payment is approved, verify the transaction and activate PRO.
- * Called from CheckoutSuccessPage.
- */
-export async function verifyWompiPayment(transactionId: string, token: string | null) {
-  const isSandbox = true; // Contracts always uses sandbox for now
-  const baseUrl   = isSandbox
-    ? 'https://sandbox.wompi.co/v1'
-    : 'https://production.wompi.co/v1';
-
-  // Verify directly with Wompi sandbox (the private key is in the backend)
-  // We call our contracts API endpoint to proxy this verification
-  const res = await fetch(
-    `${API_BASE}/api/v1/payments/verify?transaction_id=${transactionId}`,
-    {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    },
-  );
-
-  if (!res.ok) {
-    // Fallback: check via NestJS validate-payment
-    const fallback = await fetch(
-      `${API_BASE}/api/wompi/validate-payment?reference=${transactionId}`,
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
-    );
-    return fallback.json();
-  }
-  return res.json();
-}

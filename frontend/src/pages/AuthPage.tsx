@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Mail, Lock, User, Building2, FileSearch } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, FileSearch } from 'lucide-react';
 import { useAuthStore, apiLogin, apiRegister } from '@/store/useAuthStore';
 
 export function AuthPage() {
@@ -19,7 +19,6 @@ export function AuthPage() {
 
   // Register
   const [rName,    setRName]    = useState('');
-  const [rEmpresa, setREmpresa] = useState('');
   const [rEmail,   setREmail]   = useState('');
   const [rPwd,     setRPwd]     = useState('');
 
@@ -143,11 +142,6 @@ export function AuthPage() {
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
               <input type="text" placeholder="Nombre completo" value={rName}
                 onChange={(e) => setRName(e.target.value)} required className={ic} />
-            </div>
-            <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
-              <input type="text" placeholder="Nombre de la empresa (opcional)" value={rEmpresa}
-                onChange={(e) => setREmpresa(e.target.value)} className={ic} />
             </div>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />

@@ -34,9 +34,10 @@ export function CheckoutPage() {
     try {
       const token = getContractsToken();
       const params = new URLSearchParams({
-        plan:  'pro_licitador',
-        email: user?.email ?? '',
-        name:  user?.name  ?? '',
+        plan:   'pro_licitador',
+        email:  user?.email  ?? '',
+        name:   user?.name   ?? '',
+        userId: user?.userId ?? '',   // enables ORD-{userId}-{ts} reference format
       });
       const res = await fetch(`${API_BASE}/api/wompi/checkout-data?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
