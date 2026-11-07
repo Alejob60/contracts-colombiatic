@@ -8,6 +8,7 @@ import { DocumentosPage }    from './dashboard/DocumentosPage';
 import { EvaluacionesPage }  from './dashboard/EvaluacionesPage';
 import { AlertasPage }       from './dashboard/AlertasPage';
 import { AnalyticaPage }     from './dashboard/AnalyticaPage';
+import { RedB2BPage }        from './dashboard/RedB2BPage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -19,7 +20,7 @@ const FEATURE_CARDS = [
   { icon: BarChart3, title: 'Evaluador IA',         desc: 'Sprint 5 ✓ — activo', done: true,  to: '/dashboard/evaluaciones' },
   { icon: Bell,      title: 'Alertas Email',     desc: 'Sprint 6 ✓ — activo', done: true,  to: '/dashboard/alertas' },
   { icon: BarChart3, title: 'Analítica',          desc: 'Sprint 7 ✓ — activo', done: true,  to: '/dashboard/analitica' },
-  { icon: Users,     title: 'Red B2B',             desc: 'Próximamente',          done: false, to: '#' },
+  { icon: Users,     title: 'Red B2B',            desc: 'Sprint 8 ✓ — activo', done: true,  to: '/dashboard/b2b' },
 ];
 
 function DashboardHome() {
@@ -154,6 +155,7 @@ export function DashboardPage() {
           <Route path="evaluaciones" element={<EvaluacionesPage />} />
           <Route path="alertas"      element={<AlertasPage />} />
           <Route path="analitica"    element={<AnalyticaPage />} />
+          <Route path="b2b"          element={<RedB2BPage />} />
         </Routes>
       </div>
     </div>
