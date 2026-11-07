@@ -148,7 +148,11 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
               key={opt.value}
               type="button"
               title={opt.title}
-              onClick={() => setValues(v => ({ ...v, estado_view: opt.value }))}
+              onClick={() => {
+                const next = { ...values, estado_view: opt.value };
+                setValues(next);
+                onApply(next);  // auto-apply — intent is unambiguous
+              }}
               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
                 values.estado_view === opt.value
                   ? opt.value === 'activos'
@@ -172,7 +176,11 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
         </label>
         <select
           value={values.year}
-          onChange={set('year')}
+          onChange={e => {
+            const next = { ...values, year: e.target.value };
+            setValues(next);
+            onApply(next);  // auto-apply year change immediately
+          }}
           className={`w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
             focus:outline-none focus:border-emerald-500/50 transition-colors
             [&>option]:bg-[#0F1929] [&>option]:text-white`}>

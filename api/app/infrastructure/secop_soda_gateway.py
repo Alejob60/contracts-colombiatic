@@ -74,6 +74,16 @@ def _build_where(f: SecopFilter) -> list[str]:
         clauses.append(f"estado_de_apertura_del_proceso='{safe}'")
     elif not f.estado:
         clauses.append("estado_de_apertura_del_proceso in('Abierto','Convocado','Publicado')")
+        # Exclude zombie SECOP I contracts: datos.gov.co contains migrated records
+        # from the 1990s/2000s (date = 1999-12-31) that were never properly closed.
+        # SECOP II launched in 2015; anything before that in 'Abierto' is bad data.
+        # NULL-dated records ARE included — they may be very recent processes that
+        # haven't been date-stamped by the SODA export pipeline yet.
+        if not f.year and not f.fecha_desde:
+            clauses.append(
+                "(fecha_de_publicacion_del IS NULL "
+                "OR fecha_de_publicacion_del>='2015-01-01T00:00:00.000')"
+            )
     # year filter — when set, overrides any date range
     if f.year:
         clauses.append(f"fecha_de_publicacion_del>='{f.year}-01-01T00:00:00.000'")
@@ -109,8 +119,14 @@ def _normalize_row(row: dict[str, Any]) -> SecopProcess | None:
         fecha_raw = row.get("fecha_de_publicacion_del", "")
         try:
             fecha = datetime.fromisoformat(fecha_raw.replace("Z", "+00:00"))
+            # Reject obviously invalid dates: SECOP II started in 2015.
+            # Dates before 2010 are zombie SECOP I migration artefacts.
+            if fecha.year < 2010:
+                return None
         except (ValueError, AttributeError):
-            fecha = datetime(2000, 1, 1, tzinfo=timezone.utc)  # sentinel: missing date
+            # Missing date — recent processes sometimes have null fecha_de_publicacion_del
+            # in SODA while CCE processes the export. Use now() so they appear as recent.
+            fecha = datetime.now(tz=timezone.utc)
 
         # precio_base comes as a string
         precio_raw = row.get("precio_base")
