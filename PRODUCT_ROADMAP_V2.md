@@ -536,7 +536,7 @@ integración con Claude/Cursor/ChatGPT de los usuarios, y preparación Enterpris
 | S12-T5 | MCP auth: API keys por usuario, tabla `api_keys` con hash SHA256 | asyncpg, `secrets.token_hex(32)` | P1 |
 | S12-T6 | Rate limiting global: `slowapi` en FastAPI + Redis para 100 req/min por usuario PRO | `slowapi`, Redis | P0 |
 | S12-T7 | Audit log: tabla `audit_log` — INSERT on every sensitive action (download, generate, connect) vía FastAPI middleware | asyncpg, CloudTrail complement | P1 |
-| S12-T8 | SIA OBSERVA (Enterprise): `sia_reporter.py` — mapea contrato SECOP activo → campos SIA OBSERVA. Auto-completa formato mensual de ejecución. Inicialmente exporta Excel, luego integración directa | openpyxl, OCDS contract data | P2 |
+| S12-T8 | **Asistente de Ejecución Contractual** (reemplaza SIA OBSERVA): formulario "qué ejecuté este mes" → Bedrock Claude Sonnet genera Informe de Avance + Acta de Ejecución con lenguaje Ley 80/D.1082/2015 → Word/PDF descargable → usuario sube a SECOP II manualmente. Sin credenciales, sin automatización de portales del Estado. | openpyxl, python-docx, Bedrock | P2 |
 | S12-T9 | Nginx: rate limiting por IP + fail2ban config en VM para proteger :8110 | `infra-aws/contracts/nginx/` | P0 |
 | S12-T10 | Monitoring: CloudWatch custom metrics para `evaluations_per_day`, `documents_downloaded`, `active_pro_users`. Alarma si API p99 > 5s | boto3 CloudWatch, `main.py` middleware | P1 |
 | S12-T11 | Load test: `locust` contra staging — 50 usuarios concurrentes durante 5 min | `locust`, EC2 separado | P1 |
@@ -584,10 +584,26 @@ Con 15 usuarios Corporativo ($390k COP/mes = ~USD $93/mes cada uno)
 | **Capacidad Residual** | ✅ (5 calc.) | ✅ Sprint 10 |
 | **Competidores** | ✅ Auditor | ✅ Sprint 11 |
 | **MCP para IA assistants** | ✅ Auditor | ✅ Sprint 12 |
-| **SIA OBSERVA** | ❌ | ✅ Sprint 12 Enterprise |
+| **Asistente de Ejecución Contractual** | ❌ | ✅ Sprint 11 (Actas + Informes IA) |
 
 **Nuestra propuesta de valor única:**  
-*"No solo te decimos si puedes aplicar — te preparamos para ganar."*
+*"No solo te decimos si puedes aplicar — te preparamos para ganar y ejecutar."*
 
 Farolic es un **pre-auditor** (semáforo).  
-ColombiaTIC Contracts es un **copiloto de licitaciones** (de la detección al contrato firmado).
+ColombiaTIC Contracts es un **copiloto de licitaciones** (de la detección al contrato ejecutado).
+
+---
+
+## 8. Módulos descartados y por qué
+
+### ❌ "SIA OBSERVA Auto-Reporter" (descartado en auditoría)
+
+Propuesto como Sprint 12 Enterprise. Descartado por 3 razones plan-breaking:
+
+1. **Audiencia incorrecta**: SIA OBSERVA es el portal de rendición de cuentas de *entidades* ante la Auditoría General. Los contratistas individuales NO tienen cuentas. Apuntaba al usuario equivocado.
+2. **SECOP II transaccional requiere Firma Digital (.p12)** — no usuario/contraseña. Imposible login programático.
+3. **Riesgo legal real**: almacenar credenciales de portales del Estado viola Ley 1273/2009 (delitos informáticos) — multa hasta 2.000 SMMLV + responsabilidad penal.
+
+**Reemplazado por**: Módulo "Asistente de Ejecución Contractual" (Sprint 11) — genera Informes de Avance y Actas con lenguaje jurídico correcto (Ley 80, D. 1082/2015). El usuario los descarga y los sube manualmente a SECOP II. Sin credenciales, sin automatización de portales del Estado, cero riesgo legal.
+
+Detalle completo en `SPRINT9_WORKSPACE_OPTIMIZADO.md`.
