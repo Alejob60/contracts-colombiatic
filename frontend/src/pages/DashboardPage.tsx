@@ -11,6 +11,7 @@ import { AnalyticaPage }     from './dashboard/AnalyticaPage';
 import { RedB2BPage }        from './dashboard/RedB2BPage';
 import { WorkspacePage }     from './dashboard/WorkspacePage';
 import { ExternalProcessPage } from './dashboard/ExternalProcessPage';
+import { IntegracionSECOPPage } from './dashboard/IntegracionSECOPPage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -160,6 +161,7 @@ export function DashboardPage() {
           <Route path="b2b"          element={<RedB2BPage />} />
           <Route path="workspace/:procesoId" element={<WorkspacePage />} />
           <Route path="proceso-externo" element={<ExternalProcessPage />} />
+          <Route path="integracion-secop" element={<IntegracionSECOPPage />} />
         </Routes>
       </div>
     </div>

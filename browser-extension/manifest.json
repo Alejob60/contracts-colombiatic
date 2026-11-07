@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "ColombiaTIC Contracts",
+  "version": "1.0.0",
+  "description": "Importa procesos de SECOP II a ColombiaTIC Contracts con un clic.",
+  "icons": {
+    "16":  "icons/icon-16.png",
+    "48":  "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://community.secop.gov.co/*",
+    "https://contracts.colombiatic.com.co/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://community.secop.gov.co/*"],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16":  "icons/icon-16.png",
+      "48":  "icons/icon-48.png"
+    },
+    "default_title": "ColombiaTIC Contracts"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["popup/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
