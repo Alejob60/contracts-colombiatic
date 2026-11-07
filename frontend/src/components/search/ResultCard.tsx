@@ -1,13 +1,30 @@
+/**
+ * ResultCard — Displays a single SECOP process in search results.
+ *
+ * WHY the save button lives here: the bookmark action is contextual to each
+ * result card. Lifting it to the parent (SearchPage) would require passing
+ * save state per-card and managing a Map of proceso_id → saved status.
+ * Keeping it local makes the component self-contained.
+ */
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Building2, Tag, Calendar, DollarSign, ExternalLink, Lock } from 'lucide-react';
+import {
+  MapPin, Building2, Tag, Calendar, DollarSign,
+  ExternalLink, Lock, Bookmark, Loader2, Check,
+} from 'lucide-react';
 import { formatCOP } from '@/lib/utils/formatCurrency';
+import { getContractsToken } from '@/store/useAuthStore';
+import { saveProcess, CompanyApiError } from '@/lib/api/company';
 import type { SecopProcessCard } from '@/types/secop';
+import type { SaveProcessPayload } from '@/types/company';
 
 interface ResultCardProps {
   process: SecopProcessCard;
   isBlurred?: boolean;
   onUpgrade?: () => void;
 }
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 const ESTADO_COLORS: Record<string, string> = {
   Publicado:      'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -28,10 +45,49 @@ function estadoColor(estado: string): string {
 
 export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCardProps) {
   const navigate = useNavigate();
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
   const handleView = () => {
     if (isBlurred) { onUpgrade?.(); return; }
     navigate(`/buscar?proceso=${process.proceso_id}`);
+  };
+
+  const handleSave = async () => {
+    const token = getContractsToken();
+    if (!token) {
+      navigate('/auth?redirect=/buscar');
+      return;
+    }
+
+    if (saveStatus === 'saved' || saveStatus === 'saving') return;
+
+    setSaveStatus('saving');
+    try {
+      const payload: SaveProcessPayload = {
+        proceso_id: process.proceso_id,
+        nombre_del_procedimiento: process.nombre_del_procedimiento,
+        entidad: process.entidad,
+        departamento_entidad: process.departamento_entidad,
+        ciudad_entidad: process.ciudad_entidad,
+        precio_base: process.precio_base,
+        modalidad: process.modalidad,
+        estado: process.estado,
+        codigo_unspsc: process.codigo_unspsc,
+        url_proceso: process.url_proceso,
+      };
+      await saveProcess(token, payload);
+      setSaveStatus('saved');
+    } catch (err) {
+      if (err instanceof CompanyApiError && err.status === 409) {
+        // Already saved — treat as success
+        setSaveStatus('saved');
+      } else {
+        setSaveStatus('error');
+        // Reset after 2s so user can retry
+        setTimeout(() => setSaveStatus('idle'), 2000);
+        if (import.meta.env.DEV) console.error('[ResultCard] save:', err);
+      }
+    }
   };
 
   return (
@@ -87,7 +143,7 @@ export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCard
         )}
       </div>
 
-      {/* ── Footer: budget + CTA ── */}
+      {/* ── Footer: budget + save + CTA ── */}
       <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-white/5">
         <div className="flex items-center gap-1.5 min-w-0">
           <DollarSign className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -102,18 +158,58 @@ export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCard
           )}
         </div>
 
-        <button
-          onClick={handleView}
-          className="shrink-0 flex items-center gap-1.5 text-xs text-stone-400
-            hover:text-emerald-400 transition-colors py-1 px-2 rounded-lg
-            hover:bg-emerald-500/5 active:bg-emerald-500/10"
-        >
-          {isBlurred ? (
-            <><Lock className="w-3 h-3" />Desbloquear</>
-          ) : (
-            <><ExternalLink className="w-3 h-3" />Ver proceso</>
+        <div className="flex items-center gap-1">
+          {/* Save / bookmark button */}
+          {!isBlurred && (
+            <button
+              onClick={handleSave}
+              disabled={saveStatus === 'saving' || saveStatus === 'saved'}
+              className={`shrink-0 flex items-center gap-1 text-xs py-1 px-2 rounded-lg
+                transition-colors ${
+                  saveStatus === 'saved'
+                    ? 'text-emerald-400 bg-emerald-500/10'
+                    : saveStatus === 'error'
+                      ? 'text-red-400 bg-red-500/5'
+                      : 'text-stone-400 hover:text-emerald-400 hover:bg-emerald-500/5'
+                } disabled:cursor-default`}
+              title={
+                saveStatus === 'saved' ? 'Guardado'
+                : saveStatus === 'error' ? 'Error al guardar'
+                : 'Guardar proceso'
+              }
+            >
+              {saveStatus === 'saving' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Guardado</span>
+                </>
+              ) : (
+                <>
+                  <Bookmark className={`w-3.5 h-3.5 ${saveStatus === 'error' ? '' : ''}`} />
+                  <span className="hidden sm:inline">
+                    {saveStatus === 'error' ? 'Error' : 'Guardar'}
+                  </span>
+                </>
+              )}
+            </button>
           )}
-        </button>
+
+          {/* View process button */}
+          <button
+            onClick={handleView}
+            className="shrink-0 flex items-center gap-1.5 text-xs text-stone-400
+              hover:text-emerald-400 transition-colors py-1 px-2 rounded-lg
+              hover:bg-emerald-500/5 active:bg-emerald-500/10"
+          >
+            {isBlurred ? (
+              <><Lock className="w-3 h-3" />Desbloquear</>
+            ) : (
+              <><ExternalLink className="w-3 h-3" />Ver proceso</>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Blur overlay for gated results */}
