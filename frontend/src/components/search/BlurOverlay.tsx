@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Lock, ArrowRight, Zap } from 'lucide-react';
+import { Lock, Zap } from 'lucide-react';
 
 interface BlurOverlayProps {
   remainingSearches: number;

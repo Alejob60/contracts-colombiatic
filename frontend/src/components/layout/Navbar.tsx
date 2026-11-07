@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, FileSearch, LogOut, LayoutDashboard, Zap } from 'lucide-react';
+import { Menu, X, FileSearch, LogOut, LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 const NAV_LINKS = [

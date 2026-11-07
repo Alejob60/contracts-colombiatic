@@ -4,8 +4,8 @@ import { SearchBar } from '@/components/search/SearchBar';
 import { ResultCard } from '@/components/search/ResultCard';
 import { PlanCard } from '@/components/pricing/PlanCard';
 import {
-  Search, Shield, Zap, Bell, FileText, Users,
-  BarChart3, ArrowRight, CheckCircle2, RefreshCw,
+  Search, Bell, FileText,
+  ArrowRight, CheckCircle2, RefreshCw,
   FileUp, Bot, AlertCircle, Clock
 } from 'lucide-react';
 import { CONTRACTS_PRICING } from '@/lib/constants/pricing';

@@ -8,7 +8,7 @@ import { ResultSkeleton } from '@/components/search/ResultSkeleton';
 import { BlurOverlay } from '@/components/search/BlurOverlay';
 import { useSecopSearch } from '@/hooks/useSecopSearch';
 import {
-  ChevronLeft, ChevronRight, SlidersHorizontal,
+  ChevronLeft, ChevronRight,
   X, Search, ListFilter,
 } from 'lucide-react';
 

@@ -10,7 +10,7 @@ type PageStatus = 'loading' | 'success' | 'error';
 export function CheckoutSuccessPage() {
   const navigate           = useNavigate();
   const [params]           = useSearchParams();
-  const { login, isPro }   = useAuthStore();
+  const { login }   = useAuthStore();
   const [status, setStatus] = useState<PageStatus>('loading');
   const [message, setMsg]   = useState('Verificando pago con Wompi...');
   const [retries, setRetries] = useState(0);
@@ -18,7 +18,8 @@ export function CheckoutSuccessPage() {
   const verify = useCallback(async () => {
     // Wompi sends ?id=TX_ID on redirect
     const txId  = params.get('id') ?? params.get('transaction_id');
-    const plan  = params.get('plan') ?? 'pro_licitador';
+    // Plan param available for future use when multi-plan checkout is implemented
+    void params.get('plan');
 
     if (!txId) {
       setStatus('error');

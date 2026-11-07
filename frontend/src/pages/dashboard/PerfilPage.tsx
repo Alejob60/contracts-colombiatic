@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
+import { getContractsToken } from '@/store/useAuthStore';
 import {
   Building2, Save, Loader2, CheckCircle2, X, Plus,
 } from 'lucide-react';
@@ -30,7 +30,6 @@ const inputCls = `w-full bg-white/5 border border-white/8 rounded-xl px-3 py-2.5
 const labelCls = `block text-xs text-stone-500 mb-1.5 uppercase tracking-wider font-medium`;
 
 export function PerfilPage() {
-  const { user } = useAuthStore();
   const [profile, setProfile] = useState<Profile>({
     nit: '', razon_social: '', unspsc_codes: [],
   });
