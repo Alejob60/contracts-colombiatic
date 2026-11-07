@@ -274,18 +274,48 @@ async def evaluate_bid(
         eval_id = str(eval_row["id"])
 
         # ── 1. Fetch SECOP process ───────────────────────────────────
-        process = await gateway.get_process(proceso_id)
-        if not process:
-            await conn.execute(
-                """
-                UPDATE bid_evaluations
-                SET status = 'FAILED', analysis_json = $1
-                WHERE id = $2
-                """,
-                json.dumps({"error": "Proceso no encontrado en SECOP II"}),
-                eval_id,
+        # Sprint 10B: External processes (EXT-XXXX) bypass SODA lookup
+        if proceso_id.startswith("EXT-"):
+            from datetime import timezone
+            ext_row = await conn.fetchrow(
+                "SELECT * FROM contracts.external_processes WHERE proceso_id=$1 AND user_id=$2",
+                proceso_id, user_id,
             )
-            return {"id": eval_id, "status": "FAILED", "error": "Proceso no encontrado"}
+            if not ext_row:
+                await conn.execute(
+                    "UPDATE bid_evaluations SET status='FAILED', analysis_json=$1 WHERE id=$2",
+                    json.dumps({"error": "Proceso externo no encontrado"}), eval_id,
+                )
+                return {"id": eval_id, "status": "FAILED", "error": "Proceso externo no encontrado"}
+            process = SecopProcess(
+                proceso_id=proceso_id,
+                nombre_del_procedimiento=ext_row["titulo"] or "",
+                entidad=ext_row["entidad"] or "",
+                nit_entidad=ext_row["nit_entidad"] or "",
+                departamento_entidad=ext_row["departamento"] or "",
+                ciudad_entidad=ext_row["ciudad"] or "",
+                precio_base=ext_row["precio_base"],
+                modalidad=ext_row["modalidad"] or "",
+                tipo_contrato=ext_row["tipo_contrato"] or "",
+                estado=ext_row["estado"] or "Publicado",
+                codigo_unspsc=(list(ext_row["unspsc_codes"] or [""]))[0],
+                descripcion=ext_row["descripcion"] or "",
+                url_proceso=ext_row["url_secop"] or "",
+                fecha_publicacion=ext_row["fecha_pub"] or datetime.now(tz=timezone.utc),
+            )
+        else:
+            process = await gateway.get_process(proceso_id)
+            if not process:
+                await conn.execute(
+                    """
+                    UPDATE bid_evaluations
+                    SET status = 'FAILED', analysis_json = $1
+                    WHERE id = $2
+                    """,
+                    json.dumps({"error": "Proceso no encontrado en SECOP II"}),
+                    eval_id,
+                )
+                return {"id": eval_id, "status": "FAILED", "error": "Proceso no encontrado"}
 
         process_desc = _build_process_description(process)
 

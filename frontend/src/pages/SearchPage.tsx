@@ -7,9 +7,10 @@ import { ResultCard } from '@/components/search/ResultCard';
 import { ResultSkeleton } from '@/components/search/ResultSkeleton';
 import { BlurOverlay } from '@/components/search/BlurOverlay';
 import { useSecopSearch } from '@/hooks/useSecopSearch';
+import { Link } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight,
-  X, Search, ListFilter,
+  X, Search, ListFilter, Clock, FileText,
 } from 'lucide-react';
 
 const EMPTY_FILTERS: FilterValues = {
@@ -223,10 +224,42 @@ export function SearchPage() {
 
           {/* Empty state */}
           {!loading && !error && data && data.results.length === 0 && !data.is_gated && (
-            <div className="text-center py-16 px-4">
-              <Search className="w-10 h-10 text-stone-700 mx-auto mb-3" />
-              <p className="text-stone-400 font-medium mb-1">Sin resultados</p>
-              <p className="text-stone-600 text-sm">Prueba con otros términos o amplía los filtros.</p>
+            <div className="py-12 px-4">
+              <div className="text-center mb-6">
+                <Search className="w-10 h-10 text-stone-700 mx-auto mb-3" />
+                <p className="text-stone-400 font-medium mb-1">Sin resultados</p>
+                <p className="text-stone-600 text-sm">Prueba con otros términos o amplía los filtros.</p>
+              </div>
+
+              {/* Sprint 10B: Banner for recent processes not yet in SODA */}
+              {currentQuery && (
+                <div className="max-w-lg mx-auto p-4 bg-amber-500/5 border border-amber-500/20
+                  rounded-2xl">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-stone-300 font-medium text-sm mb-1">
+                        ¿Es un proceso reciente de SECOP II?
+                      </p>
+                      <p className="text-stone-500 text-xs mb-3">
+                        La API de datos.gov.co tiene 2-7 días de retraso. Los procesos publicados
+                        esta semana pueden no aparecer aquí todavía. Si tienes el URL o el texto
+                        del proceso, puedes agregarlo y usar toda la IA del sistema.
+                      </p>
+                      <Link
+                        to="/dashboard/proceso-externo"
+                        className="inline-flex items-center gap-1.5 text-xs text-amber-400
+                          border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 rounded-lg
+                          hover:bg-amber-500/15 transition-colors font-medium">
+                        <FileText className="w-3.5 h-3.5" />
+                        Agregar proceso manualmente →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
