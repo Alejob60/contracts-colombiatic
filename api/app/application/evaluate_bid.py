@@ -312,7 +312,9 @@ async def evaluate_bid(
 
         llm = BedrockLlmService(settings)
         try:
-            analysis = llm.generate_structured(
+            # Run synchronous boto3 call in a thread to avoid blocking the event loop
+            analysis = await asyncio.to_thread(
+                llm.generate_structured,
                 _SYSTEM_PROMPT,
                 user_prompt,
                 EvaluationAnalysis,

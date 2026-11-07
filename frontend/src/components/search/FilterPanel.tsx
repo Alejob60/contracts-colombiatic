@@ -105,7 +105,9 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
     onApply(EMPTY_FILTERS);
   };
 
-  const hasFilters = Object.values(values).some((v) => v !== '');
+  const hasFilters = Object.entries(values).some(
+    ([k, v]) => v !== '' && v !== EMPTY_FILTERS[k as keyof FilterValues],
+  );
 
   const selectClass = `w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
     focus:outline-none focus:border-emerald-500/50 transition-colors

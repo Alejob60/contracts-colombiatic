@@ -45,20 +45,25 @@ export function ProcessDetailModal({ process, onClose }: ProcessDetailModalProps
   const handleSave = async () => {
     if (!isAuthenticated) { navigate('/auth'); return; }
     const token = getContractsToken();
-    await fetch(`${API_BASE}/api/v1/company/saved`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        proceso_id: process.proceso_id,
-        nombre_proceso: process.nombre_del_procedimiento,
-        entidad: process.entidad,
-        precio_base: process.precio_base ? Number(process.precio_base) : null,
-        departamento: process.departamento_entidad,
-        ciudad: process.ciudad_entidad,
-        estado: process.estado,
-      }),
-    });
-    setSaved(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/company/saved`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          proceso_id: process.proceso_id,
+          nombre_proceso: process.nombre_del_procedimiento,
+          entidad: process.entidad,
+          precio_base: process.precio_base ? Number(process.precio_base) : null,
+          departamento: process.departamento_entidad,
+          ciudad: process.ciudad_entidad,
+          estado: process.estado,
+        }),
+      });
+      if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+      setSaved(true);
+    } catch {
+      setEvalError('Error al guardar el proceso. Intenta de nuevo.');
+    }
   };
 
   return (

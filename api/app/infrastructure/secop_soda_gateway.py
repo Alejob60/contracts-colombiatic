@@ -13,6 +13,7 @@ import hashlib
 import json
 import logging
 import time
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -60,9 +61,6 @@ def _build_where(f: SecopFilter) -> list[str]:
     if f.tipo_contrato:
         safe = f.tipo_contrato.replace("'", "''")
         clauses.append(f"tipo_de_contrato='{safe}'")
-    if f.estado:
-        safe = f.estado.replace("'", "''")
-        clauses.append(f"estado_de_apertura_del_proceso='{safe}'")
     if f.codigo_unspsc:
         safe = f.codigo_unspsc.replace("'", "''")
         clauses.append(f"starts_with(codigo_principal_de_categoria,'{safe}')")
@@ -77,7 +75,6 @@ def _build_where(f: SecopFilter) -> list[str]:
     elif not f.estado:
         clauses.append("estado_de_apertura_del_proceso in('Abierto','Convocado','Publicado')")
     # year filter — when set, overrides any date range
-    from datetime import datetime, timezone, timedelta
     if f.year:
         clauses.append(f"fecha_de_publicacion_del>='{f.year}-01-01T00:00:00.000'")
         clauses.append(f"fecha_de_publicacion_del<='{f.year}-12-31T23:59:59.000'")
