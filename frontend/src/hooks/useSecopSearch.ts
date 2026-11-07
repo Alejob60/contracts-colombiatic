@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { FilterValues } from '@/components/search/FilterPanel';
+import { getContractsToken } from '@/store/useAuthStore';
 
 export interface SecopSearchResult {
   results: SecopProcessCard[];
@@ -64,7 +65,8 @@ export function useSecopSearch(): UseSecopSearchReturn {
       params.set('limit', '20');
 
       try {
-        const token = localStorage.getItem('contracts_token');
+        // getContractsToken reads from cookie first, then from Zustand persist
+        const token = getContractsToken();
         const headers: Record<string, string> = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 

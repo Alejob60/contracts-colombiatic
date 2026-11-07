@@ -4,7 +4,6 @@ import { CheckCircle2, XCircle, Loader2, RotateCcw } from 'lucide-react';
 import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
-const WOMPI_PRIVATE_KEY = import.meta.env.VITE_WOMPI_PRIVATE_KEY ?? ''; // not used client-side
 
 type PageStatus = 'loading' | 'success' | 'error';
 
@@ -51,36 +50,37 @@ export function CheckoutSuccessPage() {
         return;
       }
 
-      // ── Step 2: Activate subscription in backend ──────────────────────
-      if (token) {
+      // ── Step 2: Get fresh JWT with updated planTier ───────────────────
+      // The old token has planTier: FREE. The refresh endpoint issues a new
+      // token that reads planTier from the current DB subscription (PRO_LICITADOR).
+      let freshToken = token;
+      const refreshToken = useAuthStore.getState().refreshToken;
+      if (refreshToken) {
         try {
-          await fetch(`${API_BASE}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
+          const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
           });
-          // The webhook should have already activated the plan.
-          // Refresh the user profile to get updated planTier.
-          const meRes  = await fetch(`${API_BASE}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-            cache: 'no-store',
-          });
-          if (meRes.ok) {
-            const meData = await meRes.json();
-            const user   = meData.data ?? meData;
-            // Update store with latest user data
-            login(token, '', {
-              userId:   user.userId ?? user.user_id ?? '',
-              name:     user.name ?? '',
-              email:    user.email ?? '',
-              role:     user.role ?? 'PRO',
-              plan:     user.subscription?.plan ?? user.plan ?? 'PRO_LICITADOR',
-              planTier: user.subscription?.plan_tier ?? 'PRO_LICITADOR',
-              tenantId: user.tenantId ?? 'contracts',
-            });
+          if (refreshRes.ok) {
+            const rd = await refreshRes.json();
+            freshToken = rd.token ?? rd.access_token ?? rd.accessToken ?? token;
           }
-        } catch { /* non-blocking */ }
+        } catch { /* non-blocking — stale token still works with role check */ }
       }
 
-      // ── Step 3: Set payment_verified cookie ───────────────────────────
+      // ── Step 3: Update store with fresh token + PRO status ───────────
+      login(freshToken ?? token ?? '', refreshToken ?? '', {
+        userId:   '',
+        name:     useAuthStore.getState().user?.name ?? '',
+        email:    useAuthStore.getState().user?.email ?? '',
+        role:     'PRO',
+        plan:     'PRO_LICITADOR',
+        planTier: 'PRO_LICITADOR',
+        tenantId: 'contracts',
+      });
+
+      // ── Step 4: Set payment_verified cookie ──────────────────────────
       const isSecure = window.location.protocol === 'https:';
       const secFlag  = isSecure ? '; Secure' : '';
       document.cookie = `payment_verified=1; path=/; max-age=2592000; SameSite=Lax${secFlag}`;

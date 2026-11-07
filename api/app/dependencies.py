@@ -124,11 +124,27 @@ async def get_current_user(
     return payload
 
 
+_PRO_PLANS = frozenset({"PRO_LICITADOR", "PRO"})
+
+
 async def require_pro(
     user: dict[str, object] = Depends(get_current_user),
 ) -> dict[str, object]:
-    plan_tier = user.get("planTier")
-    if plan_tier != "PRO_LICITADOR":
+    """
+    Gate access to PRO_LICITADOR subscribers.
+
+    Accepts either:
+    - planTier == 'PRO_LICITADOR'  (fresh JWT after payment)
+    - role == 'PRO'                (JWT issued after role upgrade, stale planTier)
+
+    The two-check approach handles users whose JWT was issued before their
+    Wompi payment was confirmed — the webhook upgrades `role` in the DB
+    immediately, but the old JWT still carries planTier = 'FREE'.
+    """
+    plan_tier = str(user.get("planTier") or "")
+    role      = str(user.get("role") or "")
+
+    if plan_tier not in _PRO_PLANS and role not in _PRO_PLANS:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Se requiere una suscripción activa para acceder a este recurso.",

@@ -93,7 +93,7 @@ class SearchSecopUseCase:
         plan_tier: str | None,          # None=anonymous, 'FREE', 'PRO_LICITADOR'
         client_ip: str,
     ) -> GatedSearchResponse:
-        is_pro = plan_tier == "PRO_LICITADOR"
+        is_pro = plan_tier in {"PRO_LICITADOR", "PRO"}
 
         # ── 1. Freemium gate check (anonymous only) ────────────────────────
         if not is_pro:
