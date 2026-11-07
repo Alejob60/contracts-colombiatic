@@ -23,7 +23,9 @@ class SecopFilter(BaseModel):
     municipio: Optional[str] = None       # ciudad_entidad — cascades from departamento
     modalidad: Optional[str] = None
     tipo_contrato: Optional[str] = None
+    # estado: None=activos default, 'todos'=all, specific value=exact match
     estado: Optional[str] = None
+    year: Optional[int] = Field(default=None, ge=2000, le=2030)   # filter by publication year
     codigo_unspsc: Optional[str] = None
     precio_min: Optional[Decimal] = None
     precio_max: Optional[Decimal] = None

@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import { Search, FileText, Bell, BarChart3, Users, ArrowRight, Zap, Building2, Bookmark } from 'lucide-react';
 import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
-import { PerfilPage }      from './dashboard/PerfilPage';
-import { GuardadosPage }   from './dashboard/GuardadosPage';
-import { DocumentosPage }  from './dashboard/DocumentosPage';
+import { PerfilPage }        from './dashboard/PerfilPage';
+import { GuardadosPage }     from './dashboard/GuardadosPage';
+import { DocumentosPage }    from './dashboard/DocumentosPage';
+import { EvaluacionesPage }  from './dashboard/EvaluacionesPage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -13,7 +14,7 @@ const FEATURE_CARDS = [
   { icon: Building2, title: 'Perfil de empresa',   desc: 'Sprint 3 ✓ — activo', done: true,  to: '/dashboard/perfil' },
   { icon: Bookmark,  title: 'Procesos guardados',  desc: 'Sprint 3 ✓ — activo', done: true,  to: '/dashboard/guardados' },
   { icon: FileText,  title: 'Documentos RAG',      desc: 'Sprint 4 ✓ — activo', done: true,  to: '/dashboard/documentos' },
-  { icon: BarChart3, title: 'Evaluador IA',         desc: 'Sprint 5',             done: false, to: '#' },
+  { icon: BarChart3, title: 'Evaluador IA',         desc: 'Sprint 5 ✓ — activo', done: true,  to: '/dashboard/evaluaciones' },
   { icon: Bell,      title: 'Alertas WhatsApp',    desc: 'Sprint 6',             done: false, to: '#' },
   { icon: Users,     title: 'Red B2B',             desc: 'Próximamente',          done: false, to: '#' },
 ];
@@ -147,6 +148,7 @@ export function DashboardPage() {
           <Route path="perfil"      element={<PerfilPage />} />
           <Route path="guardados"   element={<GuardadosPage />} />
           <Route path="documentos"  element={<DocumentosPage />} />
+          <Route path="evaluaciones" element={<EvaluacionesPage />} />
         </Routes>
       </div>
     </div>

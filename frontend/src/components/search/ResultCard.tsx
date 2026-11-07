@@ -10,11 +10,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MapPin, Building2, Tag, Calendar, DollarSign,
-  ExternalLink, Lock, Bookmark, Loader2, Check,
+  ExternalLink, Lock, Bookmark, Loader2, Check, Bot,
 } from 'lucide-react';
 import { formatCOP } from '@/lib/utils/formatCurrency';
-import { getContractsToken } from '@/store/useAuthStore';
+import { getContractsToken, useAuthStore } from '@/store/useAuthStore';
 import { saveProcess, CompanyApiError } from '@/lib/api/company';
+import { analyzeProcess, EvaluationApiError } from '@/lib/api/evaluation';
 import type { SecopProcessCard } from '@/types/secop';
 import type { SaveProcessPayload } from '@/types/company';
 
@@ -25,6 +26,7 @@ interface ResultCardProps {
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type EvalActionStatus = 'idle' | 'evaluating' | 'done' | 'error';
 
 const ESTADO_COLORS: Record<string, string> = {
   Publicado:      'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -45,11 +47,16 @@ function estadoColor(estado: string): string {
 
 export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCardProps) {
   const navigate = useNavigate();
+  const { isPro } = useAuthStore();
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [evalStatus, setEvalStatus] = useState<EvalActionStatus>('idle');
 
   const handleView = () => {
     if (isBlurred) { onUpgrade?.(); return; }
-    navigate(`/buscar?proceso=${process.proceso_id}`);
+    // Open the official SECOP II process page directly
+    if (process.url_proceso) {
+      window.open(process.url_proceso, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const handleSave = async () => {
@@ -87,6 +94,31 @@ export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCard
         setTimeout(() => setSaveStatus('idle'), 2000);
         if (import.meta.env.DEV) console.error('[ResultCard] save:', err);
       }
+    }
+  };
+
+  const handleEvaluate = async () => {
+    const token = getContractsToken();
+    if (!token) {
+      navigate('/auth?redirect=/buscar');
+      return;
+    }
+    if (evalStatus === 'evaluating' || evalStatus === 'done') return;
+
+    setEvalStatus('evaluating');
+    try {
+      await analyzeProcess(token, process.proceso_id);
+      setEvalStatus('done');
+      navigate('/dashboard/evaluaciones');
+    } catch (err) {
+      setEvalStatus('error');
+      const RESET_DELAY_MS = 2000;
+      setTimeout(() => setEvalStatus('idle'), RESET_DELAY_MS);
+      if (err instanceof EvaluationApiError && err.status === 403) {
+        navigate('/pricing');
+        return;
+      }
+      if (import.meta.env.DEV) console.error('[ResultCard] evaluate:', err);
     }
   };
 
@@ -193,6 +225,38 @@ export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCard
                   </span>
                 </>
               )}
+            </button>
+          )}
+
+          {/* AI Evaluate button — PRO only, shown when result is not blurred */}
+          {!isBlurred && isPro && (
+            <button
+              onClick={handleEvaluate}
+              disabled={evalStatus === 'evaluating' || evalStatus === 'done'}
+              className={`shrink-0 flex items-center gap-1 text-xs py-1 px-2 rounded-lg
+                transition-colors ${
+                  evalStatus === 'done'
+                    ? 'text-emerald-400 bg-emerald-500/10'
+                    : evalStatus === 'error'
+                      ? 'text-red-400 bg-red-500/5'
+                      : 'text-stone-400 hover:text-teal-400 hover:bg-teal-500/5'
+                } disabled:cursor-default`}
+              title={
+                evalStatus === 'done' ? 'Evaluado'
+                : evalStatus === 'error' ? 'Error al evaluar'
+                : 'Evaluar con IA'
+              }
+            >
+              {evalStatus === 'evaluating' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Bot className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {evalStatus === 'evaluating' ? 'Evaluando...' :
+                 evalStatus === 'done' ? 'Evaluado' :
+                 evalStatus === 'error' ? 'Error' : 'Evaluar'}
+              </span>
             </button>
           )}
 

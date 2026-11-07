@@ -1,6 +1,6 @@
 # Scope del Producto — ColombiaTIC Contracts
 
-**Versión**: 1.0.0 · **Fecha**: 2026-11-04 · **Estado**: Aprobado
+**Versión**: 1.1.0 · **Fecha**: 2026-11-07 · **Estado**: En desarrollo activo
 
 ---
 
@@ -135,7 +135,54 @@ Competidor directo: expedito.com.co/cuenta-de-cobro/generador/
 
 ---
 
-## Estrategia SEO
+## Bugs conocidos / mejoras de datos
+
+| # | Problema | Fix aplicado | Sprint |
+|---|---|---|---|
+| 1 | Fechas 1999-2005 en resultados | Default = activos (Abierto/Convocado), filtro por año | S5 |
+| 2 | "Ver proceso" no abría SECOP II | `handleView` abre `url_proceso` en nueva pestaña | S5 |
+| 3 | Buscador mostraba contratos históricos | Default = estado activo, no fecha | S5 |
+
+**Principio de diseño**: Por defecto se muestran SOLO contratos activos (Abierto/Convocado).
+El usuario puede filtrar por año específico o ver todos los estados cuando quiera trazabilidad.
+
+---
+
+## Seguridad — Módulo Pendiente (Sprint 8)
+
+### RLS (Row Level Security) en PostgreSQL
+
+Cada usuario solo puede leer/escribir SUS propios datos en `contracts` schema.
+
+```sql
+ALTER TABLE contracts.company_profiles  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contracts.saved_processes   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contracts.bid_evaluations   ENABLE ROW LEVEL SECURITY;
+-- Policy: user ve solo sus filas
+CREATE POLICY user_isolation ON contracts.company_profiles
+  USING (user_id = current_setting('app.current_user_id')::uuid);
+```
+
+### Dashboard individual por usuario
+
+- Todas las rutas `/dashboard/*` protegidas con `require_pro` ✅
+- Datos siempre filtrados por `user_id` del JWT ✅
+- **Pendiente**: RLS como segunda capa de defensa a nivel BD
+
+### Guardrails de seguridad (Sprint 8)
+
+| Guardrail | Estado | Plan |
+|---|---|---|
+| JWT validation | ✅ | PyJWT + require_pro |
+| X-Tenant-ID por nginx | ✅ | Inmanipulable desde cliente |
+| Cookie Secure; SameSite | ✅ | useAuthStore.login() |
+| Input sanitization SODA | ✅ | replace("'","''") |
+| RLS PostgreSQL | 🔲 S8 | Policy por user_id |
+| Rate limiting IP | 🔲 S8 | slowapi + nginx limit_req |
+| Secrets en Secrets Manager | 🔲 S8 | Mover .env a AWS SM |
+| CORS restrictivo | 🔲 S8 | Solo contracts.colombiatic.com.co |
+| AWS Bedrock Guardrails | 🔲 S8 | Evitar jailbreak en evaluador |
+| Audit log evaluaciones | 🔲 S8 | Qué proceso evaluó cada usuario |
 
 ### Keywords primarias (Colombia)
 | Keyword | Volumen estimado | Intención |

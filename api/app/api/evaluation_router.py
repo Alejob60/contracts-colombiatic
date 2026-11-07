@@ -1,43 +1,209 @@
 """
-AI bid-evaluation endpoints.
+AI bid-evaluation endpoints — Sprint 5.
 
-Sprint 0 stubs — real implementation lands when the Bedrock evaluator
-service and pgvector similarity search are integrated.
+Endpoints:
+  POST /api/v1/evaluations/analyze  — run AI evaluation (PRO only)
+  GET  /api/v1/evaluations          — list user's evaluations (PRO only)
+  GET  /api/v1/evaluations/{id}     — get single evaluation (PRO only)
+
+WHY a separate ``/analyze`` POST instead of bare ``POST /``: the action
+is expensive (5-15 s Bedrock call + RAG retrieval) and idempotent (same
+user + proceso_id returns the cached result). A verb path communicates
+the intent better than a bare resource POST, and clients can distinguish
+"start analysis" from potential future "create draft evaluation" flows.
 """
-
 from __future__ import annotations
 
-from fastapi import APIRouter, status
+import asyncpg
+import json
+import logging
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from app.application.evaluate_bid import evaluate_bid
+from app.application.manage_company import get_pg_url
+from app.config import Settings
+from app.dependencies import get_settings, require_pro
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/evaluations", tags=["evaluations"])
 
 
-@router.post("/")
-async def create_evaluation() -> JSONResponse:
-    """Request an AI evaluation for a specific SECOP process vs. company profile."""
-    return JSONResponse(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        content={"message": "Create evaluation endpoint — Sprint 3"},
-    )
+# ── Request models ─────────────────────────────────────────────────────────
+
+class AnalyzeRequest(BaseModel):
+    """Body for POST /analyze — only the SECOP process ID is required."""
+    proceso_id: str
 
 
-@router.get("/{evaluation_id}")
-async def get_evaluation(evaluation_id: str) -> JSONResponse:
-    """Retrieve a completed or in-progress evaluation by ID."""
-    return JSONResponse(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        content={
-            "message": "Get evaluation endpoint — Sprint 3",
-            "evaluation_id": evaluation_id,
-        },
+# ── Helpers ────────────────────────────────────────────────────────────────
+
+def _user_id(user: dict[str, Any]) -> str:
+    """Extract user ID from JWT payload, raising 401 if absent."""
+    uid = str(user.get("sub") or user.get("userId") or "")
+    if not uid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No user ID in token",
+        )
+    return uid
+
+
+async def _get_company_id(user_id: str, settings: Settings) -> str:
+    """
+    Look up the company_profiles row for *user_id* and return its ID.
+
+    Raises 400 if no company profile exists — the user must create one
+    before running evaluations (we need company docs for RAG).
+    """
+    conn = await asyncpg.connect(
+        get_pg_url(settings),
+        server_settings={"search_path": "contracts,public"},
     )
+    try:
+        row = await conn.fetchrow(
+            "SELECT id FROM company_profiles WHERE user_id = $1",
+            user_id,
+        )
+    finally:
+        await conn.close()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Crea tu perfil de empresa antes de evaluar licitaciones.",
+        )
+    return str(row["id"])
+
+
+def _row_to_json(row: asyncpg.Record) -> dict:
+    """Convert an asyncpg Record to a JSON-safe dict."""
+    from datetime import datetime
+    from decimal import Decimal
+    from uuid import UUID
+
+    result: dict = {}
+    for key, val in dict(row).items():
+        if isinstance(val, UUID):
+            result[key] = str(val)
+        elif isinstance(val, datetime):
+            result[key] = val.isoformat()
+        elif isinstance(val, Decimal):
+            result[key] = float(val)
+        elif key == "analysis_json" and isinstance(val, str):
+            try:
+                result["analysis"] = json.loads(val)
+            except json.JSONDecodeError:
+                result["analysis"] = None
+        else:
+            result[key] = val
+    return result
+
+
+# ── Endpoints ──────────────────────────────────────────────────────────────
+
+@router.post("/analyze")
+async def analyze_bid(
+    body: AnalyzeRequest,
+    request: Request,
+    user: dict[str, Any] = Depends(require_pro),
+    settings: Settings = Depends(get_settings),
+) -> JSONResponse:
+    """
+    Start an AI evaluation of the user's company against a SECOP process.
+
+    Returns the full analysis on success (status COMPLETED) or an error
+    dict with status FAILED. Idempotent: re-calling with the same
+    proceso_id returns the cached result.
+    """
+    uid = _user_id(user)
+    company_id = await _get_company_id(uid, settings)
+    gateway = request.app.state.secop_gateway
+
+    try:
+        result = await evaluate_bid(
+            user_id=uid,
+            company_id=company_id,
+            proceso_id=body.proceso_id,
+            settings=settings,
+            gateway=gateway,
+        )
+        return JSONResponse(content=result)
+    except Exception as exc:
+        logger.error(
+            "Evaluation endpoint failed",
+            extra={"user_id": uid, "proceso_id": body.proceso_id, "error": str(exc)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al evaluar la licitación.",
+        ) from exc
 
 
 @router.get("/")
-async def list_evaluations() -> JSONResponse:
-    """List all evaluations for the authenticated company."""
-    return JSONResponse(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        content={"message": "List evaluations endpoint — Sprint 3"},
+async def list_evaluations(
+    user: dict[str, Any] = Depends(require_pro),
+    settings: Settings = Depends(get_settings),
+) -> JSONResponse:
+    """List all evaluations for the authenticated user, newest first."""
+    uid = _user_id(user)
+    conn = await asyncpg.connect(
+        get_pg_url(settings),
+        server_settings={"search_path": "contracts,public"},
     )
+    try:
+        rows = await conn.fetch(
+            """
+            SELECT id::text, proceso_id, match_score, feasibility,
+                   status, analysis_json, created_at
+            FROM bid_evaluations
+            WHERE user_id = $1
+            ORDER BY created_at DESC
+            """,
+            uid,
+        )
+        evaluations = [_row_to_json(r) for r in rows]
+    finally:
+        await conn.close()
+
+    return JSONResponse(content={
+        "evaluations": evaluations,
+        "total": len(evaluations),
+    })
+
+
+@router.get("/{evaluation_id}")
+async def get_evaluation(
+    evaluation_id: str,
+    user: dict[str, Any] = Depends(require_pro),
+    settings: Settings = Depends(get_settings),
+) -> JSONResponse:
+    """Retrieve a single evaluation by ID. Must belong to the authenticated user."""
+    uid = _user_id(user)
+    conn = await asyncpg.connect(
+        get_pg_url(settings),
+        server_settings={"search_path": "contracts,public"},
+    )
+    try:
+        row = await conn.fetchrow(
+            """
+            SELECT * FROM bid_evaluations
+            WHERE id = $1 AND user_id = $2
+            """,
+            evaluation_id,
+            uid,
+        )
+    finally:
+        await conn.close()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evaluación no encontrada.",
+        )
+
+    return JSONResponse(content=_row_to_json(row))

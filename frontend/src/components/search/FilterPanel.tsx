@@ -10,6 +10,8 @@ export interface FilterValues {
   tipo_contrato: string;
   precio_min: string;
   precio_max: string;
+  estado_view: string;   // 'activos' | 'todos' | 'cerrados'
+  year: string;          // '' = all years, '2024' = specific year
 }
 
 const EMPTY_FILTERS: FilterValues = {
@@ -19,6 +21,8 @@ const EMPTY_FILTERS: FilterValues = {
   tipo_contrato: '',
   precio_min: '',
   precio_max: '',
+  estado_view: 'activos',  // default: show only active biddable contracts
+  year: '',
 };
 
 const TIPOS_CONTRATO = [
@@ -125,6 +129,56 @@ export function FilterPanel({ onApply, initialValues }: FilterPanelProps) {
             <X className="w-3 h-3" /> Limpiar
           </button>
         )}
+      </div>
+
+      {/* Estado del contrato */}
+      <div>
+        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider font-medium">
+          Estado del contrato
+        </label>
+        <div className="flex gap-1.5">
+          {[
+            { value: 'activos', label: 'Activos', title: 'Abierto / Convocado — para licitar HOY' },
+            { value: 'todos',   label: 'Todos',   title: 'Todos los estados' },
+            { value: 'cerrados',label: 'Cerrados',title: 'Adjudicados / Cancelados / históricos' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              title={opt.title}
+              onClick={() => setValues(v => ({ ...v, estado_view: opt.value }))}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                values.estado_view === opt.value
+                  ? opt.value === 'activos'
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-white/15 text-white'
+                  : 'text-stone-500 hover:text-stone-300 bg-white/5'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {values.estado_view === 'activos' && (
+          <p className="text-stone-600 text-[10px] mt-1">Mostrando contratos abiertos para licitar</p>
+        )}
+      </div>
+
+      {/* Año de publicación */}
+      <div>
+        <label className="block text-xs text-stone-500 mb-1.5 uppercase tracking-wider font-medium">
+          Año de publicación
+        </label>
+        <select
+          value={values.year}
+          onChange={set('year')}
+          className={`w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white
+            focus:outline-none focus:border-emerald-500/50 transition-colors
+            [&>option]:bg-[#0F1929] [&>option]:text-white`}>
+          <option value="">Todos los años</option>
+          {Array.from({ length: new Date().getFullYear() - 2018 }, (_, i) => new Date().getFullYear() - i).map(y => (
+            <option key={y} value={String(y)}>{y}</option>
+          ))}
+        </select>
       </div>
 
       {/* Departamento */}

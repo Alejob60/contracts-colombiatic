@@ -66,7 +66,10 @@ async def search_secop(
     municipio: Annotated[str | None, Query(description="Ciudad — usar junto con departamento")] = None,
     modalidad: Annotated[str | None, Query()] = None,
     tipo_contrato: Annotated[str | None, Query()] = None,
-    estado: Annotated[str | None, Query()] = None,
+    # estado: None=activos (Abierto/Convocado), 'todos'=all, specific=exact
+    estado: Annotated[str | None, Query(description="None=activos, 'todos'=todos, o valor exacto")] = None,
+    # year: filter by publication year (2020..2030). Overrides fecha_desde/hasta.
+    year: Annotated[int | None, Query(ge=2000, le=2030, description="Año de publicación")] = None,
     codigo_unspsc: Annotated[str | None, Query()] = None,
     precio_min: Annotated[Decimal | None, Query()] = None,
     precio_max: Annotated[Decimal | None, Query()] = None,
@@ -110,6 +113,7 @@ async def search_secop(
         modalidad=modalidad,
         tipo_contrato=tipo_contrato,
         estado=estado,
+        year=year,
         codigo_unspsc=codigo_unspsc,
         precio_min=precio_min,
         precio_max=precio_max,

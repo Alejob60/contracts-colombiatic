@@ -70,9 +70,20 @@ def _build_where(f: SecopFilter) -> list[str]:
         clauses.append(f"precio_base>='{f.precio_min}'")
     if f.precio_max is not None:
         clauses.append(f"precio_base<='{f.precio_max}'")
-    if f.fecha_desde:
+    # Estado: default = activos (Abierto/Convocado) — solo contratos licitables HOY
+    if f.estado and f.estado.lower() != "todos":
+        safe = f.estado.replace("'", "''")
+        clauses.append(f"estado_de_apertura_del_proceso='{safe}'")
+    elif not f.estado:
+        clauses.append("estado_de_apertura_del_proceso in('Abierto','Convocado','Publicado')")
+    # year filter — when set, overrides any date range
+    from datetime import datetime, timezone, timedelta
+    if f.year:
+        clauses.append(f"fecha_de_publicacion_del>='{f.year}-01-01T00:00:00.000'")
+        clauses.append(f"fecha_de_publicacion_del<='{f.year}-12-31T23:59:59.000'")
+    elif f.fecha_desde:
         clauses.append(f"fecha_de_publicacion_del>='{f.fecha_desde.isoformat()}'")
-    if f.fecha_hasta:
+    if f.fecha_hasta and not f.year:
         clauses.append(f"fecha_de_publicacion_del<='{f.fecha_hasta.isoformat()}'")
     return clauses
 

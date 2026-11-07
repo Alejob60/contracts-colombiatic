@@ -19,6 +19,8 @@ const EMPTY_FILTERS: FilterValues = {
   tipo_contrato: '',
   precio_min: '',
   precio_max: '',
+  estado_view: 'activos',
+  year: '',
 };
 
 export function SearchPage() {
