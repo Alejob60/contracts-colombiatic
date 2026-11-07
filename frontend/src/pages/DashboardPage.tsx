@@ -7,6 +7,7 @@ import { GuardadosPage }     from './dashboard/GuardadosPage';
 import { DocumentosPage }    from './dashboard/DocumentosPage';
 import { EvaluacionesPage }  from './dashboard/EvaluacionesPage';
 import { AlertasPage }       from './dashboard/AlertasPage';
+import { AnalyticaPage }     from './dashboard/AnalyticaPage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -17,6 +18,7 @@ const FEATURE_CARDS = [
   { icon: FileText,  title: 'Documentos RAG',      desc: 'Sprint 4 ✓ — activo', done: true,  to: '/dashboard/documentos' },
   { icon: BarChart3, title: 'Evaluador IA',         desc: 'Sprint 5 ✓ — activo', done: true,  to: '/dashboard/evaluaciones' },
   { icon: Bell,      title: 'Alertas Email',     desc: 'Sprint 6 ✓ — activo', done: true,  to: '/dashboard/alertas' },
+  { icon: BarChart3, title: 'Analítica',          desc: 'Sprint 7 ✓ — activo', done: true,  to: '/dashboard/analitica' },
   { icon: Users,     title: 'Red B2B',             desc: 'Próximamente',          done: false, to: '#' },
 ];
 
@@ -151,6 +153,7 @@ export function DashboardPage() {
           <Route path="documentos"   element={<DocumentosPage />} />
           <Route path="evaluaciones" element={<EvaluacionesPage />} />
           <Route path="alertas"      element={<AlertasPage />} />
+          <Route path="analitica"    element={<AnalyticaPage />} />
         </Routes>
       </div>
     </div>
