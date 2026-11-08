@@ -279,10 +279,24 @@ class SecopSodaGateway(ISecopGateway):
 
     async def get_process(self, proceso_id: str) -> SecopProcess | None:
         safe_id = proceso_id.replace("'", "''")
+
+        # Strategy 1: exact match on id_del_proceso (fast)
         rows = await self._get({
             "$select": _SELECT_FIELDS,
             "$where": f"id_del_proceso='{safe_id}'",
             "$limit": 1,
+        })
+        if rows:
+            result = _normalize_row(rows[0])
+            if result:
+                return result
+
+        # Strategy 2: full-text $q search — catches processes where the ID
+        # lives in a different SODA field (referencia_del_proceso, etc.)
+        rows = await self._get({
+            "$select": _SELECT_FIELDS,
+            "$q":      proceso_id,
+            "$limit":  1,
         })
         if not rows:
             return None

@@ -1,58 +1,77 @@
 /**
- * background.js (Service Worker) — ColombiaTIC Contracts Extension
- * Handles auth and cross-tab communication.
+ * background.js (Service Worker) — Fixed for Manifest V3 ephemeral workers.
+ *
+ * Key fixes:
+ * - GET_STATUS removed: popup reads storage directly now
+ * - All message handlers call sendResponse synchronously or in IIFE
+ * - sendResponse always called even for fire-and-forget messages
  */
 
 const API_BASE = 'https://contracts.colombiatic.com.co';
 
-// Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'LOGIN') {
-    handleLogin(msg.email, msg.password).then(sendResponse);
-    return true; // Keep channel open for async response
+    // Must use async IIFE — return true keeps channel open
+    (async () => {
+      try {
+        const result = await handleLogin(msg.email, msg.password);
+        sendResponse(result);
+      } catch (e) {
+        sendResponse({ ok: false, error: e.message });
+      }
+    })();
+    return true; // Keep message channel open for async response
   }
+
   if (msg.type === 'LOGOUT') {
-    chrome.storage.local.remove(['jwt', 'jwt_expires', 'user_email']);
-    sendResponse({ ok: true });
-  }
-  if (msg.type === 'GET_STATUS') {
-    chrome.storage.local.get(['jwt', 'jwt_expires', 'user_email']).then(sendResponse);
+    chrome.storage.local.remove(['jwt', 'jwt_expires', 'user_email'], () => {
+      sendResponse({ ok: true });
+    });
     return true;
   }
+
   if (msg.type === 'OPEN_POPUP') {
-    chrome.action.openPopup?.();
+    // Fire-and-forget — always respond to avoid "message channel closed" error
+    chrome.action.openPopup?.().catch(() => {});
+    sendResponse({ ok: true });
+    return false;
   }
+
+  // Unknown message — respond immediately to avoid channel errors
+  sendResponse({ ok: false, error: 'Unknown message type' });
+  return false;
 });
 
 async function handleLogin(email, password) {
-  try {
-    const resp = await fetch(`${API_BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': 'contracts' },
-      body: JSON.stringify({ email, password }),
+  const resp = await fetch(`${API_BASE}/api/auth/login`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': 'contracts' },
+    body:    JSON.stringify({ email, password }),
+  });
+  const data = await resp.json();
+  if (resp.ok && data.token) {
+    await chrome.storage.local.set({
+      jwt:         data.token,
+      jwt_expires: Date.now() + 86_400_000,
+      user_email:  email,
     });
-    const data = await resp.json();
-    if (resp.ok && data.token) {
-      const expires = Date.now() + 86_400_000; // 24h
-      await chrome.storage.local.set({
-        jwt:          data.token,
-        jwt_expires:  expires,
-        user_email:   email,
-      });
-      return { ok: true, email };
-    }
-    return { ok: false, error: data.detail || 'Credenciales incorrectas' };
-  } catch (err) {
-    return { ok: false, error: err.message };
+    return { ok: true, email };
   }
+  return { ok: false, error: data.detail || 'Credenciales incorrectas' };
 }
 
-// Show badge when on SECOP II
+// Badge: show ⚡ when user is on SECOP II
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url?.includes('community.secop.gov.co')) {
-    chrome.action.setBadgeText({ text: '⚡', tabId });
-    chrome.action.setBadgeBackgroundColor({ color: '#10b981', tabId });
-  } else if (changeInfo.status === 'complete') {
-    chrome.action.setBadgeText({ text: '', tabId });
+  if (changeInfo.status !== 'complete') return;
+  try {
+    if (tab.url?.includes('community.secop.gov.co') ||
+        tab.url?.includes('www.secop.gov.co')) {
+      chrome.action.setBadgeText({ text: '⚡', tabId });
+      chrome.action.setBadgeBackgroundColor({ color: '#10b981', tabId });
+    } else {
+      chrome.action.setBadgeText({ text: '', tabId });
+    }
+  } catch {
+    // Tab may have been closed — ignore
   }
 });

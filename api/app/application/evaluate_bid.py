@@ -18,6 +18,7 @@ memory and computing cosine is correct for the expected corpus size
 """
 from __future__ import annotations
 
+import asyncio
 import asyncpg
 import json
 import logging

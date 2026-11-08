@@ -134,7 +134,10 @@ async function handleImport() {
   // Get stored JWT
   const stored = await chrome.storage.local.get(['jwt', 'jwt_expires']);
   if (!stored.jwt) {
-    chrome.runtime.sendMessage({ type: 'OPEN_POPUP' });
+    // FIX: wrap sendMessage in try-catch — service worker may be dormant
+    try {
+      chrome.runtime.sendMessage({ type: 'OPEN_POPUP' }).catch(() => {});
+    } catch { /* ignore if service worker not available */ }
     showStatus('⚙️ Inicia sesión primero', false);
     setTimeout(() => buttonEl?.remove(), 3000);
     return;

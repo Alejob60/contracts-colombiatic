@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # ── AWS / Bedrock ─────────────────────────────────────────────────────
     AWS_REGION: str = "us-east-1"
-    BEDROCK_MODEL_EVALUATOR: str = "anthropic.claude-3-haiku-20240307-v1:0"
+    BEDROCK_MODEL_EVALUATOR: str = "global.anthropic.claude-sonnet-4-6"
     BEDROCK_MODEL_EMBED: str = "amazon.titan-embed-text-v2:0"
 
     # ── SECOP II (Datos Abiertos Socrata endpoint) ────────────────────────

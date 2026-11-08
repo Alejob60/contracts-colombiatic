@@ -76,7 +76,7 @@ export async function analyzeProcess(
 export async function fetchEvaluations(
   token: string,
 ): Promise<EvaluationListResponse> {
-  const res = await fetch(`${API_BASE}/api/v1/evaluations`, {
+  const res = await fetch(`${API_BASE}/api/v1/evaluations/`, {
     headers: authHeaders(token),
   });
   return handleResponse<EvaluationListResponse>(res, 'listar evaluaciones');

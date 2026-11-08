@@ -22,6 +22,7 @@ import {
   ChevronLeft, Info,
 } from 'lucide-react';
 import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
+import { secopUrl } from '@/lib/utils/secopUrl';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -268,10 +269,10 @@ export function WorkspacePage() {
             </div>
           </div>
 
-          {/* Open SECOP II */}
+          {/* Open in SECOP II — uses current working URL format */}
           <div className="flex gap-2 mb-4">
             <a
-              href={`https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=${procesoId?.replace('CO1.REQ.','CO1.NTC.')}`}
+              href={secopUrl(undefined, procesoId)}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-emerald-400
                 border border-white/10 hover:border-emerald-500/20 px-3 py-2 rounded-lg

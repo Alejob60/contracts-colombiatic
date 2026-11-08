@@ -156,11 +156,16 @@ export function ProcessDetailModal({ process, onClose }: ProcessDetailModalProps
             </div>
           )}
 
-          {/* SECOP notice */}
+          {/* SECOP notice with working link */}
           <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3 text-xs text-stone-500">
-            <p className="text-amber-400 font-medium mb-0.5">ℹ️ Portal SECOP II actualmente con problemas</p>
-            El portal oficial community.secop.gov.co presenta intermitencias.
-            Usa el evaluador IA de ColombiaTIC para analizar este proceso con tus documentos corporativos.
+            <p className="text-amber-400 font-medium mb-0.5">ℹ️ Acceso directo al proceso</p>
+            <a
+              href={`https://www.secop.gov.co/CO1BusinessLine/Tendering/ContractNoticeView/Index?notice=${process.proceso_id}`}
+              target="_blank" rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 underline">
+              Abrir en SECOP II (www.secop.gov.co) →
+            </a>
+            <span className="ml-2 text-stone-600">(community.secop.gov.co presenta errores frecuentes)</span>
           </div>
 
           {evalError && (
