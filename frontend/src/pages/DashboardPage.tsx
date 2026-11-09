@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Routes, Route } from 'react-router-dom';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useNavigate, Link, Routes, Route } from 'react-router-dom';
+import {
+  Search, FileText, Bell, BarChart3, Users,
+  ArrowRight, Zap, Building2, Bookmark,
+} from 'lucide-react';
+import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
 import { DashboardSidebar, MobileSidebarTrigger } from '@/components/layout/DashboardSidebar';
 import { PerfilPage }        from './dashboard/PerfilPage';
 import { GuardadosPage }     from './dashboard/GuardadosPage';
