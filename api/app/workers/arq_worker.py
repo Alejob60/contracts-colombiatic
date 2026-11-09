@@ -213,6 +213,21 @@ async def task_alert_cycle(ctx: dict[str, Any]) -> dict:
     return {"status": "done"}
 
 
+async def task_secop_cache_sync(ctx: dict[str, Any]) -> dict:
+    """
+    Incremental SECOP cache sync — runs every 2 hours via ARQ cron.
+    Keeps local PostgreSQL cache fresh (< 2h freshness vs 2-7 day SODA lag).
+    """
+    from app.workers.secop_cache_sync import sync_cycle
+
+    settings: Settings = ctx["settings"]
+    gateway = ctx["gateway"]
+    logger.info("ARQ cron: starting SECOP cache sync")
+    synced = await sync_cycle(settings, gateway)
+    logger.info("ARQ cron: cache sync done — %d records upserted", synced)
+    return {"synced": synced}
+
+
 # ── ARQ WorkerSettings ────────────────────────────────────────────────────
 
 class WorkerSettings:
@@ -229,11 +244,13 @@ class WorkerSettings:
         task_generate_quote,
         task_extract_external,
         task_alert_cycle,
+        task_secop_cache_sync,
     ]
 
     if _ARQ_AVAILABLE and arq_cron:
         cron_jobs = [
             arq_cron(task_alert_cycle, hour={0, 6, 12, 18}, minute=0, run_at_startup=False),
+            arq_cron(task_secop_cache_sync, minute={0, 30}, run_at_startup=True),
         ]
 
     redis_settings = get_arq_redis()

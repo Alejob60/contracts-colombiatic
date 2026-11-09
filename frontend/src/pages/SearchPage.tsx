@@ -189,6 +189,17 @@ export function SearchPage() {
                     {data.cached && (
                       <span className="ml-2 text-emerald-600 text-xs">· caché</span>
                     )}
+                    {(data as any).cache_age_minutes !== undefined && (
+                      <span className={`ml-2 text-[11px] ${
+                        (data as any).cache_age_minutes < 30 ? 'text-emerald-500' :
+                        (data as any).cache_age_minutes < 120 ? 'text-amber-500' :
+                        'text-stone-600'
+                      }`}>
+                        · actualizado hace {(data as any).cache_age_minutes < 60
+                          ? `${(data as any).cache_age_minutes}min`
+                          : `${Math.round((data as any).cache_age_minutes / 60)}h`}
+                      </span>
+                    )}
                   </>
                 ) : null}
               </p>

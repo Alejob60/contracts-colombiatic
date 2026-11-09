@@ -43,6 +43,7 @@ class GatedSearchResponse:
         "results", "total", "offset", "limit",
         "cached", "response_time_ms",
         "remaining_free_searches", "is_gated", "upgrade_url",
+        "last_synced", "cache_age_minutes",
     )
 
     def __init__(
@@ -61,9 +62,11 @@ class GatedSearchResponse:
         self.remaining_free_searches = remaining
         self.is_gated = is_gated
         self.upgrade_url = "/pricing"
+        self.last_synced: str | None = None
+        self.cache_age_minutes: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d = {
             "results": self.results,
             "total": self.total,
             "offset": self.offset,
@@ -74,6 +77,10 @@ class GatedSearchResponse:
             "is_gated": self.is_gated,
             "upgrade_url": self.upgrade_url,
         }
+        if self.last_synced:
+            d["last_synced"] = self.last_synced
+            d["cache_age_minutes"] = self.cache_age_minutes
+        return d
 
 
 class SearchSecopUseCase:
@@ -85,6 +92,7 @@ class SearchSecopUseCase:
     ) -> None:
         self._gateway = gateway
         self._cache = cache
+        self._settings = settings
         self._max_free = settings.FREEMIUM_MAX_SEARCHES
 
     async def execute(
@@ -108,10 +116,10 @@ class SearchSecopUseCase:
                     is_gated=True,
                 )
 
-        # ── 2. Cache lookup ───────────────────────────────────────────────
+        # ── 2. Cache lookup (Redis short-term) ───────────────────────────
         cached_result = await self._cache.get_search(filters)
         if cached_result:
-            logger.debug("Cache hit for filters offset=%d q=%r", filters.offset, filters.query)
+            logger.debug("Redis cache hit offset=%d q=%r", filters.offset, filters.query)
             if not is_pro:
                 new_count = await self._cache.increment_search_count(client_ip)
                 remaining = max(0, self._max_free - new_count)
@@ -137,7 +145,58 @@ class SearchSecopUseCase:
                 is_gated=False,
             )
 
-        # ── 3. Live SODA query ────────────────────────────────────────────
+        # ── 3. Local PostgreSQL cache (Sprint 10A — freshness < 2h) ──────
+        import time as _time
+        t_local = _time.monotonic()
+        local_result = None
+        last_synced = None
+        try:
+            from app.infrastructure.secop_cache_search import search_cache
+            cache_result = await search_cache(filters, self._settings)
+            if cache_result and isinstance(cache_result, tuple):
+                local_result, last_synced, _cache_size = cache_result
+                elapsed_ms = int((_time.monotonic() - t_local) * 1000)
+                if local_result and local_result.results:
+                    logger.info(
+                        "Local cache hit: %d results in %dms (q=%r)",
+                        local_result.total, elapsed_ms, filters.query,
+                    )
+                    # Store in Redis for 5min to avoid repeated DB queries
+                    await self._cache.set_search(filters, local_result)
+                elif local_result is None:
+                    pass  # cache cold/miss — fall through to SODA
+        except Exception as exc:
+            logger.warning("Local cache search failed, falling back to SODA: %s", exc)
+            local_result = None
+
+        if local_result and local_result.results:
+            if not is_pro:
+                new_count = await self._cache.increment_search_count(client_ip)
+                remaining = max(0, self._max_free - new_count)
+            else:
+                remaining = self._max_free
+            result_dicts = (
+                [_full_process(p) for p in local_result.results]
+                if is_pro
+                else [_mask_process(p) for p in local_result.results]
+            )
+            response = GatedSearchResponse(
+                base=local_result,
+                results=result_dicts,
+                remaining=remaining,
+                is_gated=False,
+            )
+            # Add freshness metadata
+            if last_synced:
+                response.last_synced = last_synced.isoformat()
+                import math
+                age_min = int((
+                    __import__('datetime').datetime.now(__import__('datetime').timezone.utc) - last_synced
+                ).total_seconds() / 60)
+                response.cache_age_minutes = age_min
+            return response
+
+        # ── 4. Live SODA query (fallback) ─────────────────────────────────
         result = await self._gateway.search(filters)
 
         # ── 4. Store in cache ─────────────────────────────────────────────
