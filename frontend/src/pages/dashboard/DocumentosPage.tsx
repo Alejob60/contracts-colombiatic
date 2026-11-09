@@ -309,7 +309,7 @@ export function DocumentosPage() {
   return (
     <div className="max-w-2xl">
       {/* Page header */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
           <FileText className="w-5 h-5 text-emerald-400" />
         </div>
@@ -318,6 +318,16 @@ export function DocumentosPage() {
           <p className="text-stone-500 text-sm">
             Sube documentos para que la IA evalúe licitaciones con tu información
           </p>
+        </div>
+        {/* P1 Fix: show doc limit visibly */}
+        <div className="ml-auto text-right">
+          <p className="text-xs text-stone-500">
+            {documents.length} <span className="text-stone-700">/</span>{' '}
+            <span className={documents.length >= 10 ? 'text-red-400' : 'text-stone-500'}>
+              {isPro ? '10' : '0'}
+            </span> docs
+          </p>
+          <p className="text-[10px] text-stone-700">límite del plan</p>
         </div>
       </div>
 

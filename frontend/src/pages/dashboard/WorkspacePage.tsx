@@ -220,11 +220,11 @@ export function WorkspacePage() {
 
   return (
     <div className="max-w-5xl">
-      {/* Two-column grid: content left + Hermes right */}
+      {/* Two-column on lg+, single column on mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ── Left column: workspace content ── */}
-        <div className="lg:col-span-2">
-          <div className="max-w-2xl">
+        <div className="lg:col-span-2 order-2 lg:order-1">
+          <div className="max-w-full">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link to="/dashboard/guardados"
@@ -456,20 +456,43 @@ export function WorkspacePage() {
         </div>
       )}
 
-      {/* Empty state after job READY with no excel templates */}
+      {/* P0 Fix: Show PDF analysis option even without Excel templates */}
       {job?.status === 'READY' && docs.length > 0 && !ws?.has_excel_templates && (
-        <div className="text-center py-6">
-          <p className="text-stone-500 text-sm">
-            Este proceso no tiene plantillas Excel para generar cotización.
-            Revisa los documentos descargados.
+        <div className="bg-white/[0.02] border border-white/8 rounded-2xl p-5">
+          <h2 className="text-stone-300 font-semibold text-sm flex items-center gap-2 mb-3">
+            <Bot className="w-4 h-4 text-emerald-500" />
+            Analizar con Hermes
+          </h2>
+          <p className="text-stone-500 text-xs mb-3">
+            Este proceso no tiene plantillas Excel. Usa el asistente Hermes
+            para analizar los documentos PDF y preparar tu propuesta.
           </p>
+          <div className="grid grid-cols-2 gap-2">
+            {['¿Cumplo los requisitos?', '¿Qué documentos me faltan?'].map(q => (
+              <button key={q}
+                onClick={() => {
+                  // Expand Hermes if collapsed and send the question
+                  const hermesInput = document.querySelector<HTMLInputElement>('#hermes-input');
+                  if (hermesInput) {
+                    hermesInput.value = q;
+                    hermesInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    hermesInput.focus();
+                  }
+                }}
+                className="text-xs text-stone-400 border border-white/10 bg-white/[0.02]
+                  hover:border-emerald-500/20 hover:text-emerald-400 px-2.5 py-2 rounded-lg
+                  transition-colors text-left">
+                {q}
+              </button>
+            ))}
+          </div>
         </div>
       )}
         </div>{/* end max-w-2xl */}
       </div>{/* end left column */}
 
-      {/* ── Right column: Hermes + Competition ── */}
-      <div className="lg:col-span-1 space-y-4">
+      {/* ── Right column: Hermes + Competition (top on mobile) ── */}
+      <div className="lg:col-span-1 order-1 lg:order-2 space-y-4">
         {/* Competition intelligence */}
         {procesoId && !procesoId.startsWith('EXT-') && (
           <CompetitionBadge procesoId={procesoId} />
