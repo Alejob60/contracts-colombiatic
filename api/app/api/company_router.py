@@ -197,6 +197,31 @@ async def upload_document(
     """
     uid = _user_id(user)
 
+    # ── Document usage gate (Sprint 14) ───────────────────────────────
+    from app.services.usage_service import check_and_gate, increment as usage_incr, _PLAN_LABELS, _UPGRADE_PLAN
+    plan_tier = str(user.get("planTier") or user.get("role") or "FREE")
+    redis = request.app.state.redis
+
+    allowed, used, limit = await check_and_gate(uid, "docs", plan_tier, redis)
+    if not allowed:
+        next_plan = _UPGRADE_PLAN.get(plan_tier, "ENTERPRISE")
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error":       "document_limit_reached",
+                "resource":    "docs",
+                "used":        used,
+                "limit":       limit,
+                "plan_label":  _PLAN_LABELS.get(plan_tier, plan_tier),
+                "upgrade_to":  next_plan,
+                "upgrade_url": "/pricing",
+                "message": (
+                    f"Alcanzaste el límite de {limit} documentos RAG este mes. "
+                    f"Actualiza al plan {_PLAN_LABELS.get(next_plan, next_plan)} para continuar."
+                ),
+            },
+        )
+
     # Validate doc_type before any I/O
     doc_type_upper = doc_type.strip().upper()
     if doc_type_upper not in _VALID_DOC_TYPES:
@@ -287,6 +312,9 @@ async def upload_document(
         "Document upload accepted",
         extra={"doc_id": doc["id"], "company_id": company_id, "filename": filename},
     )
+    # Increment document usage counter (Sprint 14)
+    await usage_incr(uid, "docs", redis)
+
     return JSONResponse(
         status_code=202,
         content={**doc, "message": "Documento recibido. Indexando en segundo plano..."},

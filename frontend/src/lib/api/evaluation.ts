@@ -32,24 +32,30 @@ function authHeaders(token: string): Record<string, string> {
 async function handleResponse<T>(res: Response, context: string): Promise<T> {
   if (res.ok) return res.json() as Promise<T>;
 
-  let detail: string | undefined;
+  let detail: unknown;
   try {
-    const body: unknown = await res.json();
-    detail = (body as { detail?: string }).detail;
-  } catch {
-    /* response body not JSON — ignore */
-  }
+    detail = await res.json();
+  } catch { /* not JSON */ }
 
-  const message = detail ?? `Error ${res.status} en ${context}`;
+  const detailStr = typeof detail === 'string'
+    ? detail
+    : (detail as { detail?: string })?.detail ?? `Error ${res.status} en ${context}`;
 
   if (res.status === 401) {
-    throw new EvaluationApiError('Sesión expirada. Vuelve a iniciar sesión.', 401, detail);
+    throw new EvaluationApiError('Sesión expirada. Vuelve a iniciar sesión.', 401, detailStr);
   }
   if (res.status === 403) {
-    throw new EvaluationApiError('Se requiere suscripción PRO Licitador.', 403, detail);
+    throw new EvaluationApiError('Se requiere suscripción PRO Licitador.', 403, detailStr);
+  }
+  if (res.status === 429) {
+    // Usage limit reached — attach full detail object for UpgradeModal
+    const err = new EvaluationApiError('Límite de uso alcanzado.', 429, detailStr);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (err as any).limitDetail = typeof detail === 'object' ? (detail as any).detail : detail;
+    throw err;
   }
 
-  throw new EvaluationApiError(message, res.status, detail);
+  throw new EvaluationApiError(detailStr, res.status, detailStr);
 }
 
 // ── Endpoints ─────────────────────────────────────────────────────────────

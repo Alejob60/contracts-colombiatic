@@ -39,6 +39,7 @@ from app.api.b2b_router import router as b2b_router
 from app.api.workspace_router import router as workspace_router
 from app.api.external_router import router as external_router
 from app.api.browser_router import router as browser_router
+from app.api.usage_router import router as usage_router
 from app.config import Settings
 from app.infrastructure.db import build_async_engine, build_session_maker
 from app.infrastructure.secop_soda_gateway import SecopSodaGateway
@@ -196,6 +197,7 @@ def create_app() -> FastAPI:
     application.include_router(workspace_router)
     application.include_router(external_router)
     application.include_router(browser_router)
+    application.include_router(usage_router)
 
     return application
 

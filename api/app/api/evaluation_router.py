@@ -110,13 +110,37 @@ async def analyze_bid(
     """
     Start an AI evaluation of the user's company against a SECOP process.
 
-    Sprint 13: If the ARQ pool is available, enqueues the job and returns
-    202 immediately. The evaluation runs in a separate worker process.
-    Frontend polls GET /evaluations/{id} for the COMPLETED status.
-
-    Fallback: if ARQ is not available, runs synchronously (original behaviour).
+    Sprint 14: Usage gate — PRO: 50 evals/mes, CORP: 200, ENTERPRISE: 500.
+    Sprint 13: Returns 202 immediately when ARQ is available.
     """
+    from app.services.usage_service import check_and_gate, increment, _PLAN_LABELS, _UPGRADE_PLAN
+
     uid = _user_id(user)
+    plan_tier = str(user.get("planTier") or user.get("role") or "FREE")
+    redis = request.app.state.redis
+
+    # ── Usage gate (Sprint 14) ────────────────────────────────────────
+    allowed, used, limit = await check_and_gate(uid, "evals", plan_tier, redis)
+    if not allowed:
+        next_plan = _UPGRADE_PLAN.get(plan_tier, "ENTERPRISE")
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error":       "evaluation_limit_reached",
+                "resource":    "evals",
+                "used":        used,
+                "limit":       limit,
+                "plan":        plan_tier,
+                "plan_label":  _PLAN_LABELS.get(plan_tier, plan_tier),
+                "upgrade_to":  next_plan,
+                "upgrade_url": "/pricing",
+                "message": (
+                    f"Alcanzaste el límite de {limit} evaluaciones este mes. "
+                    f"Actualiza al plan {_PLAN_LABELS.get(next_plan, next_plan)} para continuar."
+                ),
+            },
+        )
+
     company_id = await _get_company_id(uid, settings)
     gateway = request.app.state.secop_gateway
     arq_pool = getattr(request.app.state, "arq_pool", None)
@@ -167,6 +191,10 @@ async def analyze_bid(
                 return JSONResponse(status_code=202, content={**_row_to_json(existing_analyzing), "queued": True})
 
         logger.info("Evaluation queued via ARQ: eval=%s proceso=%s", eval_id[:8], body.proceso_id)
+
+        # Increment usage counter after successful enqueue (Sprint 14)
+        await increment(uid, "evals", redis)
+
         return JSONResponse(
             status_code=202,
             content={**_row_to_json(eval_row), "queued": True},
@@ -182,6 +210,8 @@ async def analyze_bid(
             settings=settings,
             gateway=gateway,
         )
+        if result.get("status") not in ("FAILED",):
+            await increment(uid, "evals", redis)
         return JSONResponse(content=result)
     except Exception as exc:
         logger.error("Evaluation endpoint failed: %s", exc)

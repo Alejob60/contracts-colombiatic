@@ -333,14 +333,19 @@ export function AlertasPage() {
             {(['email', 'whatsapp'] as const).map(ch => (
               <button
                 key={ch}
+                disabled={ch === 'whatsapp'}
+                title={ch === 'whatsapp' ? 'WhatsApp disponible en Plan Enterprise (próximamente)' : undefined}
                 onClick={() => {
+                  if (ch === 'whatsapp') return;
                   const next = config.channels.includes(ch)
                     ? config.channels.filter(c => c !== ch)
                     : [...config.channels, ch];
                   set('channels', next.length ? next : ['email']);
                 }}
                 className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                  config.channels.includes(ch)
+                  ch === 'whatsapp'
+                    ? 'opacity-40 cursor-not-allowed bg-white/5 text-stone-600 border-white/10'
+                    : config.channels.includes(ch)
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                     : 'bg-white/5 text-stone-500 border-white/10 hover:border-white/20'
                 }`}>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import { Search, FileText, Bell, BarChart3, Users, ArrowRight, Zap, Building2, Bookmark } from 'lucide-react';
 import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
+import { UsageMeter } from '@/components/usage/UsageMeter';
 import { PerfilPage }        from './dashboard/PerfilPage';
 import { GuardadosPage }     from './dashboard/GuardadosPage';
 import { DocumentosPage }    from './dashboard/DocumentosPage';
@@ -150,6 +151,10 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen bg-brand-navy pt-20 pb-16 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Usage meter — sticky in dashboard */}
+        <div className="flex justify-end mb-4">
+          <UsageMeter />
+        </div>
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="perfil"       element={<PerfilPage />} />
