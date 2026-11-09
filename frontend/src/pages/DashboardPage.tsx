@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link, Routes, Route } from 'react-router-dom';
-import { Search, FileText, Bell, BarChart3, Users, ArrowRight, Zap, Building2, Bookmark } from 'lucide-react';
-import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
-import { UsageMeter } from '@/components/usage/UsageMeter';
+import { useNavigate, Routes, Route } from 'react-router-dom';
+import { useAuthStore } from '@/store/useAuthStore';
+import { DashboardSidebar, MobileSidebarTrigger } from '@/components/layout/DashboardSidebar';
 import { PerfilPage }        from './dashboard/PerfilPage';
 import { GuardadosPage }     from './dashboard/GuardadosPage';
 import { DocumentosPage }    from './dashboard/DocumentosPage';
@@ -142,6 +141,18 @@ export function DashboardPage() {
   const navigate   = useNavigate();
   const { isAuthenticated } = useAuthStore();
 
+  // Sidebar state — persisted in localStorage
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem('sidebar_collapsed') === '1'; } catch { return false; }
+  });
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    try { localStorage.setItem('sidebar_collapsed', next ? '1' : '0'); } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) navigate('/auth?redirect=/dashboard', { replace: true });
   }, [isAuthenticated, navigate]);
@@ -149,12 +160,19 @@ export function DashboardPage() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-brand-navy pt-20 pb-16 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Usage meter — sticky in dashboard */}
-        <div className="flex justify-end mb-4">
-          <UsageMeter />
-        </div>
+    <div className="min-h-screen bg-brand-navy">
+      {/* Left sidebar */}
+      <DashboardSidebar
+        collapsed={collapsed}
+        onToggle={toggleCollapsed}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
+
+      {/* Main content — offset by sidebar width */}
+      <main className={`transition-all duration-200 pt-16 pb-16 px-4 min-h-screen
+        ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
+        <div className="max-w-5xl mx-auto pt-6">
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="perfil"       element={<PerfilPage />} />
@@ -168,7 +186,11 @@ export function DashboardPage() {
           <Route path="proceso-externo" element={<ExternalProcessPage />} />
           <Route path="integracion-secop" element={<IntegracionSECOPPage />} />
         </Routes>
-      </div>
+        </div>
+      </main>
+
+      {/* Mobile FAB trigger */}
+      <MobileSidebarTrigger onClick={() => setMobileOpen(true)} />
     </div>
   );
 }

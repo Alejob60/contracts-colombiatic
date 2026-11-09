@@ -53,9 +53,9 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop nav */}
+          {/* Desktop nav — hide when inside dashboard (sidebar handles navigation) */}
           <nav className="hidden md:flex items-center gap-6">
-            {NAV_LINKS.map((link) => (
+            {!pathname.startsWith('/dashboard') && NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
