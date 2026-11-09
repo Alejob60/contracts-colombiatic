@@ -89,9 +89,12 @@ def _build_where(f: SecopFilter) -> list[str]:
         clauses.append(f"fecha_de_publicacion_del>='{f.year}-01-01T00:00:00.000'")
         clauses.append(f"fecha_de_publicacion_del<='{f.year}-12-31T23:59:59.000'")
     elif f.fecha_desde:
-        clauses.append(f"fecha_de_publicacion_del>='{f.fecha_desde.isoformat()}'")
+        # SODA requires dates without timezone offset and without microseconds
+        _ds = f.fecha_desde.strftime('%Y-%m-%dT%H:%M:%S.000')
+        clauses.append(f"fecha_de_publicacion_del>='{_ds}'")
     if f.fecha_hasta and not f.year:
-        clauses.append(f"fecha_de_publicacion_del<='{f.fecha_hasta.isoformat()}'")
+        _ds2 = f.fecha_hasta.strftime('%Y-%m-%dT%H:%M:%S.000')
+        clauses.append(f"fecha_de_publicacion_del<='{_ds2}'")
     return clauses
 
 
