@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
 import { secopUrl } from '@/lib/utils/secopUrl';
+import { HermesChat } from '@/components/workspace/HermesChat';
+import { CompetitionBadge } from '@/components/workspace/CompetitionBadge';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -217,7 +219,12 @@ export function WorkspacePage() {
   const isWorking = job && ['QUEUED','DOWNLOADING','EXTRACTING','MANUAL_UPLOAD'].includes(job.status);
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
+      {/* Two-column grid: content left + Hermes right */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* ── Left column: workspace content ── */}
+        <div className="lg:col-span-2">
+          <div className="max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link to="/dashboard/guardados"
@@ -458,6 +465,26 @@ export function WorkspacePage() {
           </p>
         </div>
       )}
+        </div>{/* end max-w-2xl */}
+      </div>{/* end left column */}
+
+      {/* ── Right column: Hermes + Competition ── */}
+      <div className="lg:col-span-1 space-y-4">
+        {/* Competition intelligence */}
+        {procesoId && !procesoId.startsWith('EXT-') && (
+          <CompetitionBadge procesoId={procesoId} />
+        )}
+
+        {/* Hermes assistant */}
+        {procesoId && (
+          <HermesChat
+            procesoId={procesoId}
+            procesoTitulo={ws?.job ? undefined : undefined}
+          />
+        )}
+      </div>
+
+      </div>{/* end grid */}
     </div>
   );
 }
