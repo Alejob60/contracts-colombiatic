@@ -162,10 +162,16 @@ async def sync_cycle(
 ) -> int:
     """
     One incremental sync cycle. Returns number of new/updated processes.
-    Called every 2 hours via ARQ cron.
+    Called every 30min via ARQ cron.
+
+    Smart sync: checks Socrata metadata first. If the government hasn't
+    updated the dataset since our last sync, skips the expensive SODA calls.
+    Government update pattern: once daily at ~13:30 UTC (8:30 AM COT).
     """
+    import asyncio as _asyncio
     from app.domain.models.secop import SecopFilter
     from app.application.manage_company import get_pg_url
+    from app.infrastructure.soda_metadata import get_soda_last_updated
 
     conn = await asyncpg.connect(
         get_pg_url(settings),
@@ -189,6 +195,41 @@ async def sync_cycle(
                 synced, cache_total,
             )
             return synced
+
+        # ── Smart sync: check if government actually updated ──────────
+        # The Socrata metadata endpoint tells us exactly when datos.gov.co
+        # last updated the SECOP dataset. If it hasn't changed since our
+        # last sync, skip all the expensive SODA API calls.
+        gov_last_updated = None
+        try:
+            import asyncio as _asyncio
+            gov_meta = await _asyncio.to_thread(get_soda_last_updated)
+            gov_last_updated = gov_meta.get("rows_updated_at")
+            logger.info(
+                "Govt dataset last updated: %s (lag=%.1fh)",
+                gov_meta.get("last_updated_display"), gov_meta.get("lag_hours"),
+            )
+
+            # Store government update time for UI display
+            await conn.execute(
+                """UPDATE contracts.secop_sync_state
+                   SET last_soda_count = CASE WHEN $1 IS NOT NULL THEN $1 ELSE last_soda_count END
+                   WHERE id=1""",
+                gov_meta.get("row_count"),
+            )
+
+            # Skip sync if government hasn't updated since we last synced
+            last_synced = state["last_synced_at"] if state else None
+            if (last_synced and gov_last_updated and
+                    gov_last_updated <= last_synced and
+                    state and state["warmup_done"]):
+                logger.info(
+                    "Smart skip: govt updated at %s, last sync at %s — no new data",
+                    gov_last_updated.isoformat(), last_synced.isoformat(),
+                )
+                return 0
+        except Exception as meta_exc:
+            logger.warning("Metadata check failed, proceeding with sync: %s", meta_exc)
 
         # ── Strategy A: date-based (last 3 hours + overlap) ───────────
         since = datetime.now(timezone.utc) - timedelta(hours=3)

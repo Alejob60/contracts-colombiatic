@@ -7,7 +7,7 @@ import { ResultCard } from '@/components/search/ResultCard';
 import { ResultSkeleton } from '@/components/search/ResultSkeleton';
 import { BlurOverlay } from '@/components/search/BlurOverlay';
 import { useSecopSearch } from '@/hooks/useSecopSearch';
-import { Link } from 'react-router-dom';
+import { FreshnessIndicator } from '@/components/search/FreshnessIndicator';
 import {
   ChevronLeft, ChevronRight,
   X, Search, ListFilter, Clock, FileText,
@@ -170,6 +170,9 @@ export function SearchPage() {
 
         {/* Results column */}
         <main className="flex-1 min-w-0">
+
+          {/* Freshness indicator — shows govt update time + cache status */}
+          {!loading && <div className="mb-3"><FreshnessIndicator /></div>}
 
           {/* Status bar */}
           {(data || loading) && (

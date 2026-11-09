@@ -32,6 +32,40 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/secop", tags=["SECOP II"])
 
 
+@router.get("/freshness")
+async def get_data_freshness(
+    settings: Settings = Depends(get_settings),
+):
+    """
+    Returns data freshness information:
+    - When the government last updated datos.gov.co (Socrata metadata)
+    - When our local cache was last synced
+    - Cache warmup status
+
+    No authentication required — useful for status pages.
+    """
+    from app.infrastructure.secop_cache_search import get_cache_status
+    try:
+        status = await get_cache_status(settings)
+        return status
+    except Exception as exc:
+        logger.warning("freshness check failed: %s", exc)
+        # Fallback: just call Socrata directly
+        from app.infrastructure.soda_metadata import get_soda_last_updated
+        import asyncio
+        try:
+            gov = await asyncio.to_thread(get_soda_last_updated)
+            return {
+                "govt_last_updated":        gov.get("last_updated_iso"),
+                "govt_last_updated_display":gov.get("last_updated_display"),
+                "govt_lag_hours":           gov.get("lag_hours"),
+                "govt_is_fresh":            gov.get("is_fresh"),
+                "soda_row_count":           gov.get("row_count"),
+            }
+        except Exception:
+            return {"error": "freshness data unavailable"}
+
+
 @router.get("/municipios")
 async def get_municipios(
     departamento: Annotated[str, Query(description="Nombre exacto del departamento")],

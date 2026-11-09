@@ -177,6 +177,7 @@ async def search_cache(
 async def get_cache_status(settings: "Settings") -> dict:
     """Return cache health metrics for the health endpoint and UI."""
     from app.application.manage_company import get_pg_url
+    from app.infrastructure.soda_metadata import get_soda_last_updated
 
     conn = await asyncpg.connect(get_pg_url(settings),
                                  server_settings={"search_path": "contracts,public"})
@@ -191,12 +192,26 @@ async def get_cache_status(settings: "Settings") -> dict:
         synced_at = state["last_synced_at"]
         age_min = int((now - synced_at).total_seconds() / 60) if synced_at else None
 
+        # Also fetch government update time (non-blocking — cache for 1h)
+        gov_info: dict = {}
+        try:
+            import asyncio as _asyncio
+            gov_info = await _asyncio.to_thread(get_soda_last_updated)
+        except Exception:
+            pass
+
         return {
-            "warm":          int(state["cache_total"] or 0) >= _MIN_WARM_SIZE,
-            "cache_total":   int(state["cache_total"] or 0),
-            "last_synced_at":synced_at.isoformat() if synced_at else None,
-            "age_minutes":   age_min,
-            "warmup_done":   bool(state["warmup_done"]),
+            "warm":             int(state["cache_total"] or 0) >= _MIN_WARM_SIZE,
+            "cache_total":      int(state["cache_total"] or 0),
+            "last_synced_at":   synced_at.isoformat() if synced_at else None,
+            "age_minutes":      age_min,
+            "warmup_done":      bool(state["warmup_done"]),
+            # Government data freshness
+            "govt_last_updated":       gov_info.get("last_updated_iso"),
+            "govt_last_updated_display": gov_info.get("last_updated_display"),
+            "govt_lag_hours":          gov_info.get("lag_hours"),
+            "govt_is_fresh":           gov_info.get("is_fresh"),
+            "soda_row_count":          gov_info.get("row_count"),
         }
     finally:
         await conn.close()
