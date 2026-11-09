@@ -110,14 +110,59 @@ async def analyze_bid(
     """
     Start an AI evaluation of the user's company against a SECOP process.
 
-    Returns the full analysis on success (status COMPLETED) or an error
-    dict with status FAILED. Idempotent: re-calling with the same
-    proceso_id returns the cached result.
+    Sprint 13: If the ARQ pool is available, enqueues the job and returns
+    202 immediately. The evaluation runs in a separate worker process.
+    Frontend polls GET /evaluations/{id} for the COMPLETED status.
+
+    Fallback: if ARQ is not available, runs synchronously (original behaviour).
     """
     uid = _user_id(user)
     company_id = await _get_company_id(uid, settings)
     gateway = request.app.state.secop_gateway
+    arq_pool = getattr(request.app.state, "arq_pool", None)
 
+    # ── Fast path: enqueue to ARQ worker ──────────────────────────────
+    if arq_pool:
+        # Create the ANALYZING record synchronously so frontend can poll
+        conn = await asyncpg.connect(
+            get_pg_url(settings), server_settings={"search_path": "contracts,public"}
+        )
+        try:
+            # Check for cached COMPLETED result first
+            existing = await conn.fetchrow(
+                """SELECT * FROM bid_evaluations
+                   WHERE user_id=$1 AND proceso_id=$2 AND status='COMPLETED'
+                   ORDER BY created_at DESC LIMIT 1""",
+                uid, body.proceso_id,
+            )
+            if existing:
+                return JSONResponse(content=_row_to_json(existing))
+
+            # Create ANALYZING record
+            eval_row = await conn.fetchrow(
+                """INSERT INTO bid_evaluations (user_id, company_id, proceso_id, status)
+                   VALUES ($1, $2, $3, 'ANALYZING') RETURNING *""",
+                uid, company_id, body.proceso_id,
+            )
+        finally:
+            await conn.close()
+
+        eval_id = str(eval_row["id"])
+
+        # Enqueue to ARQ — returns immediately
+        await arq_pool.enqueue_job(
+            "task_evaluate_bid",
+            uid, company_id, body.proceso_id,
+            _job_id=eval_id,  # use eval_id as ARQ job ID for tracking
+        )
+        logger.info("Evaluation queued via ARQ: eval=%s proceso=%s", eval_id[:8], body.proceso_id)
+        return JSONResponse(
+            status_code=202,
+            content={**_row_to_json(eval_row), "queued": True},
+        )
+
+    # ── Fallback: run synchronously (no ARQ worker running) ───────────
+    logger.info("ARQ not available — running evaluation synchronously")
     try:
         result = await evaluate_bid(
             user_id=uid,
@@ -128,10 +173,7 @@ async def analyze_bid(
         )
         return JSONResponse(content=result)
     except Exception as exc:
-        logger.error(
-            "Evaluation endpoint failed",
-            extra={"user_id": uid, "proceso_id": body.proceso_id, "error": str(exc)},
-        )
+        logger.error("Evaluation endpoint failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno al evaluar la licitación.",

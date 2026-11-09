@@ -1,0 +1,32 @@
+# /etc/systemd/system/contracts-arq-worker.service
+# ARQ job worker for ColombiaTIC Contracts.
+# Processes: AI evaluations, document indexing, ZIP extraction, quote generation.
+# Alert cron (every 6h) also runs here instead of in the API process.
+#
+# Two worker instances run for parallelism:
+#   contracts-arq-worker@1.service
+#   contracts-arq-worker@2.service
+# Start with: systemctl start contracts-arq-worker@{1,2}
+
+[Unit]
+Description=Contracts ARQ Worker %i — async job processor
+After=network-online.target redis.service contracts-api.service
+Wants=network-online.target redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/contracts-api
+EnvironmentFile=/opt/contracts-api/.env
+Environment="AWS_REGION=us-east-1"
+Environment="AWS_DEFAULT_REGION=us-east-1"
+Environment="ARQ_WORKER_ID=%i"
+ExecStart=/opt/contracts-api-venv/bin/arq app.workers.arq_worker.WorkerSettings
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/contracts-arq-%i.log
+StandardError=append:/var/log/contracts-arq-%i.err
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
