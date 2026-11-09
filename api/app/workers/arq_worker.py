@@ -232,24 +232,14 @@ class WorkerSettings:
     ]
 
     if _ARQ_AVAILABLE and arq_cron:
-        from arq.cron import cron as _arq_cron
         cron_jobs = [
-            _arq_cron(task_alert_cycle, hour={0, 6, 12, 18}, minute=0, run_at_startup=False),
+            arq_cron(task_alert_cycle, hour={0, 6, 12, 18}, minute=0, run_at_startup=False),
         ]
 
     redis_settings = get_arq_redis()
-
-    # Max concurrent jobs per worker process
     max_jobs = 5
-
-    # Per-job timeout (5 min max — Bedrock calls should complete in < 2 min)
     job_timeout = 300
-
-    # Retry failed jobs up to 2 times
     max_tries = 2
-
     on_startup = startup
     on_shutdown = shutdown
-
-    # Job health check
     health_check_interval = 30

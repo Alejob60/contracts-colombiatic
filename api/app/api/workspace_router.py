@@ -1,15 +1,9 @@
 """
-Workspace endpoints — Sprint 9.
+Workspace endpoints — Sprint 9 + Sprint 13 (ARQ queue).
 
-Manages the document workspace for each saved SECOP II process.
-
-POST /api/v1/workspace/{proceso_id}/upload    — upload ZIP (manual)
-POST /api/v1/workspace/{proceso_id}/fetch     — attempt auto-download (bonus)
-GET  /api/v1/workspace/{proceso_id}/status    — job status + documents list
-POST /api/v1/workspace/{proceso_id}/quote/{doc_id} — generate pre-filled quote
-GET  /api/v1/workspace/{proceso_id}/quotes    — list generated quotes
-GET  /api/v1/workspace/download/{doc_id}      — presigned URL for a document
-GET  /api/v1/workspace/download/quote/{quote_id} — presigned URL for a quote
+Upload ZIP → ARQ job (or BackgroundTask fallback)
+Generate quote → ARQ job (or BackgroundTask fallback)
+All status polling unchanged — reads from DB.
 """
 from __future__ import annotations
 
@@ -18,7 +12,7 @@ import uuid
 
 import boto3
 from botocore.config import Config
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile, status
 
 from app.application.manage_workspace import (
     create_job,
@@ -64,6 +58,7 @@ def _presigned(s3_key: str, settings: Settings, expires: int = 3600) -> str:
 @router.post("/{proceso_id}/upload", status_code=status.HTTP_202_ACCEPTED)
 async def upload_zip(
     proceso_id: str,
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     user: dict = Depends(require_pro),
@@ -78,17 +73,28 @@ async def upload_zip(
         raise HTTPException(
             status_code=413, detail=f"El archivo supera los {MAX_ZIP_MB} MB permitidos"
         )
-    if len(zip_bytes) < 22:  # min valid ZIP
+    if len(zip_bytes) < 22:
         raise HTTPException(status_code=400, detail="El archivo ZIP parece estar vacío o corrupto")
 
     user_id = _uid(user)
     job = await create_job(user_id, proceso_id, None, "MANUAL_UPLOAD", settings)
     job_id = job["id"]
+    arq_pool = getattr(request.app.state, "arq_pool", None)
 
-    background_tasks.add_task(
-        process_uploaded_zip,
-        job_id, proceso_id, user_id, zip_bytes, settings,
-    )
+    # Upload ZIP to S3 first (needed by both ARQ and BackgroundTask paths)
+    s3_zip_key = f"workspace/{user_id}/{proceso_id}/_upload_{job_id[:8]}.zip"
+    client = boto3.client("s3", region_name=settings.S3_REGION,
+                          config=Config(signature_version="s3v4"))
+    client.put_object(Bucket=settings.S3_BUCKET_DOCUMENTS, Key=s3_zip_key,
+                      Body=zip_bytes, ServerSideEncryption="AES256")
+
+    if arq_pool:
+        await arq_pool.enqueue_job("task_process_zip", job_id, proceso_id, user_id, s3_zip_key)
+        logger.info("ZIP queued via ARQ: job=%s", job_id[:8])
+    else:
+        background_tasks.add_task(process_uploaded_zip, job_id, proceso_id, user_id, zip_bytes, settings)
+        logger.info("ZIP processing via BackgroundTask: job=%s", job_id[:8])
+
     return {"job_id": job_id, "status": "MANUAL_UPLOAD", "message": "Procesando archivos…"}
 
 
@@ -163,13 +169,14 @@ async def workspace_status(
 async def request_quote(
     proceso_id: str,
     doc_id: str,
+    request: Request,
     background_tasks: BackgroundTasks,
     user: dict = Depends(require_pro),
     settings: Settings = Depends(get_settings),
 ):
     user_id = _uid(user)
+    arq_pool = getattr(request.app.state, "arq_pool", None)
 
-    # Verify ownership of the document
     docs = await list_documents(user_id, proceso_id, settings)
     doc = next((d for d in docs if d["id"] == doc_id), None)
     if not doc:
@@ -184,10 +191,18 @@ async def request_quote(
     placeholder_key = f"workspace/{user_id}/{proceso_id}/cotizacion_prellenada_{quote_id[:8]}.xlsx"
     quote = await create_quote(proceso_id, user_id, doc_id, placeholder_key, settings)
 
-    background_tasks.add_task(
-        generate_quote,
-        quote["id"], proceso_id, user_id, doc_id, doc["s3_key"], settings,
-    )
+    if arq_pool:
+        await arq_pool.enqueue_job(
+            "task_generate_quote",
+            quote["id"], proceso_id, user_id, doc_id, doc["s3_key"],
+        )
+        logger.info("Quote queued via ARQ: quote=%s", quote["id"][:8])
+    else:
+        background_tasks.add_task(
+            generate_quote,
+            quote["id"], proceso_id, user_id, doc_id, doc["s3_key"], settings,
+        )
+
     return {"quote_id": quote["id"], "status": "PROCESSING"}
 
 

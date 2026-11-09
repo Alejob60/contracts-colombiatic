@@ -181,6 +181,7 @@ _MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024
 
 @router.post("/documents", status_code=202)
 async def upload_document(
+    request: Request,
     background_tasks: BackgroundTasks,
     doc_type: str,
     file: UploadFile = File(...),
@@ -270,14 +271,17 @@ async def upload_document(
     finally:
         await conn.close()
 
-    # Fire-and-forget background indexing
-    background_tasks.add_task(
-        index_document,
-        doc["id"],
-        company_id,
-        file_bytes,
-        settings,
-    )
+    # Fire-and-forget indexing — ARQ when available, BackgroundTask fallback
+    arq_pool = getattr(request.app.state, "arq_pool", None)
+    if arq_pool:
+        # Upload file to S3 first so ARQ worker can access it
+        s3_store = S3DocumentStore(settings)
+        s3_key = s3_store.upload(file_bytes, filename, company_id)
+        await arq_pool.enqueue_job("task_index_document", doc["id"], company_id, s3_key)
+        logger.info("Document indexing queued via ARQ: doc=%s", doc["id"][:8])
+    else:
+        background_tasks.add_task(index_document, doc["id"], company_id, file_bytes, settings)
+        logger.info("Document indexing via BackgroundTask: doc=%s", doc["id"][:8])
 
     logger.info(
         "Document upload accepted",

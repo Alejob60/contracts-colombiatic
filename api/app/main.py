@@ -74,10 +74,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Redis connected — %s", settings.REDIS_URL)
 
     # ── asyncpg connection pool (Sprint 13) ───────────────────────────
-    # Replaces the 48 individual asyncpg.connect() calls across the codebase
-    # over time.  New code should use this pool; legacy code still works
-    # with direct connects (they just don't benefit from pooling yet).
     from app.application.manage_company import get_pg_url
+    from app.infrastructure import pg_pool as _pg_pool_module
     pg_pool = await asyncpg.create_pool(
         get_pg_url(settings),
         min_size=5,
@@ -86,6 +84,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         command_timeout=30,
     )
     app.state.pg_pool = pg_pool
+    # Expose via module-level singleton so application code can use it
+    # without needing the FastAPI Request object
+    await _pg_pool_module.set_pool(pg_pool)
     logger.info("asyncpg pool created — min=5 max=20")
 
     # ── Schema migration (idempotent) ─────────────────────────────────
@@ -110,23 +111,41 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # ── ARQ job queue pool (Sprint 13) ────────────────────────────────
     # API enqueues jobs; ARQ workers (separate processes) execute them.
-    # Alert worker moved to ARQ cron — no longer runs here.
     if _ARQ_AVAILABLE and arq_create_pool:
         try:
             from app.workers.arq_worker import get_arq_redis as _get_arq_redis
             arq_pool = await arq_create_pool(_get_arq_redis())
             app.state.arq_pool = arq_pool
-            logger.info("ARQ pool connected — DB 3")
+            logger.info("ARQ pool connected — DB 3 (alert cron runs in ARQ worker)")
         except Exception as _arq_exc:
-            logger.warning("ARQ pool unavailable (%s) — falling back to BackgroundTasks", _arq_exc)
+            logger.warning("ARQ pool unavailable (%s) — using BackgroundTasks + alert fallback", _arq_exc)
             app.state.arq_pool = None
     else:
         app.state.arq_pool = None
         logger.info("ARQ not installed — using BackgroundTasks fallback")
 
+    # ── Alert worker fallback (only when ARQ is NOT available) ────────
+    # When ARQ workers run, the alert cron fires there (no duplication).
+    # This guard starts the in-process worker only as a safety net.
+    _alert_task = None
+    if not app.state.arq_pool:
+        from app.workers.secop_sync_worker import run_alert_worker
+        _alert_task = asyncio.create_task(
+            run_alert_worker(settings, secop_gateway),
+            name="alert-worker-fallback",
+        )
+        logger.info("Alert worker started in-process (ARQ unavailable — fallback mode)")
+
     yield  # ← application runs here
 
     # ── Shutdown ──────────────────────────────────────────────────────
+    if _alert_task:
+        _alert_task.cancel()
+        try:
+            await _alert_task
+        except asyncio.CancelledError:
+            pass
+
     if app.state.arq_pool:
         await app.state.arq_pool.close()
 

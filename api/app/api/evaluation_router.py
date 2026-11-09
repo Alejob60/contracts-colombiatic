@@ -149,12 +149,23 @@ async def analyze_bid(
 
         eval_id = str(eval_row["id"])
 
-        # Enqueue to ARQ — returns immediately
-        await arq_pool.enqueue_job(
+        # Enqueue to ARQ — returns None if a job with this ID already exists
+        job = await arq_pool.enqueue_job(
             "task_evaluate_bid",
-            uid, company_id, body.proceso_id,
-            _job_id=eval_id,  # use eval_id as ARQ job ID for tracking
+            uid, company_id or "", body.proceso_id,  # empty string = no profile
+            _job_id=eval_id,
         )
+        if job is None:
+            # Job already queued/running — find the existing ANALYZING row
+            existing_analyzing = await conn.fetchrow(
+                """SELECT * FROM bid_evaluations
+                   WHERE user_id=$1 AND proceso_id=$2 AND status='ANALYZING'
+                   ORDER BY created_at DESC LIMIT 1""",
+                uid, body.proceso_id,
+            )
+            if existing_analyzing:
+                return JSONResponse(status_code=202, content={**_row_to_json(existing_analyzing), "queued": True})
+
         logger.info("Evaluation queued via ARQ: eval=%s proceso=%s", eval_id[:8], body.proceso_id)
         return JSONResponse(
             status_code=202,
