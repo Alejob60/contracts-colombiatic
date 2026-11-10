@@ -72,6 +72,16 @@ async def search_cache(
             where.append("estado IN ('Abierto','Convocado','Publicado')")
             if not filters.year and not filters.fecha_desde:
                 where.append("(fecha_pub IS NULL OR fecha_pub >= '2015-01-01')")
+            # ── Deterministic hard filters ──────────────────────────────
+            # Rule 1: exclude processes with an awarded provider
+            if filters.excluir_adjudicados:
+                where.append(
+                    "(proveedor_adjudicado IS NULL OR proveedor_adjudicado = '')"
+                )
+            # Rule 2: exclude processes whose closing date has passed
+            where.append(
+                "(fecha_cierre IS NULL OR fecha_cierre >= NOW())"
+            )
 
         # Departamento / municipio
         if filters.departamento:
@@ -102,6 +112,12 @@ async def search_cache(
         if filters.fecha_hasta and not filters.year:
             where.append(f"fecha_pub <= {_p(filters.fecha_hasta.isoformat())}")
 
+        # Negative keywords — exclude processes matching user-supplied terms
+        for kw in filters.palabras_negativas:
+            kw_clean = kw.strip()
+            if kw_clean:
+                where.append(f"nombre NOT ILIKE {_p(f'%{kw_clean}%')}")
+
         where_sql = " AND ".join(where) if where else "TRUE"
 
         # ── Count ──────────────────────────────────────────────────────
@@ -122,7 +138,8 @@ async def search_cache(
             SELECT proceso_id, nombre, entidad, nit_entidad,
                    departamento, ciudad, modalidad, tipo_contrato,
                    estado, precio_base, unspsc, url_proceso, fecha_pub,
-                   soda_synced_at
+                   soda_synced_at,
+                   proveedor_adjudicado, fecha_cierre
             FROM contracts.secop_processes_cache
             WHERE {where_sql}
             ORDER BY fecha_pub DESC NULLS LAST,
@@ -150,6 +167,8 @@ async def search_cache(
                     codigo_unspsc=row["unspsc"] or "",
                     url_proceso=row["url_proceso"] or "",
                     fecha_publicacion=fecha,
+                    proveedor_adjudicado=row["proveedor_adjudicado"] or None,
+                    fecha_cierre=row["fecha_cierre"] or None,
                 ))
             except Exception as exc:
                 logger.debug("Skip row %s: %s", row["proceso_id"], exc)

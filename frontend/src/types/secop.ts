@@ -15,6 +15,9 @@ export interface SecopProcessCard {
   fecha_publicacion: string;
   duracion: number | null;
   unidad_duracion: string | null;
+  // Validation fields
+  proveedor_adjudicado: string | null;  // non-null = already awarded, should not appear in active searches
+  fecha_cierre: string | null;           // bidding window close date
 }
 
 export interface SecopSearchFilters {

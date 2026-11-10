@@ -144,6 +144,39 @@ export function ProcessDetailModal({ process, onClose }: ProcessDetailModalProps
             )}
           </div>
 
+          {/* Adjudicado warning — should be rare since the API filters these out,
+              but may appear for external processes or stale cache entries */}
+          {process.proveedor_adjudicado && (
+            <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-3 flex gap-2.5 items-start">
+              <span className="text-red-400 text-base leading-none mt-0.5">🔴</span>
+              <div>
+                <p className="text-red-400 font-semibold text-xs">Proceso ya adjudicado</p>
+                <p className="text-red-300/70 text-xs mt-0.5">
+                  Proveedor: <span className="font-medium text-red-300">{process.proveedor_adjudicado}</span>
+                </p>
+                <p className="text-stone-600 text-[10px] mt-1">
+                  Este proceso no está abierto para nuevas ofertas.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Cierre de convocatoria */}
+          {process.fecha_cierre && new Date(process.fecha_cierre) < new Date() && (
+            <div className="bg-orange-500/10 border border-orange-500/25 rounded-xl p-3 flex gap-2.5 items-start">
+              <span className="text-orange-400 text-base leading-none mt-0.5">⚠️</span>
+              <div>
+                <p className="text-orange-400 font-semibold text-xs">Convocatoria cerrada</p>
+                <p className="text-orange-300/70 text-xs mt-0.5">
+                  Fecha de cierre:{' '}
+                  {new Date(process.fecha_cierre).toLocaleDateString('es-CO', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Description */}
           {process.descripcion && (
             <div>

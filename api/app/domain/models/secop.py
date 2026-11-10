@@ -31,6 +31,9 @@ class SecopFilter(BaseModel):
     precio_max: Optional[Decimal] = None
     fecha_desde: Optional[datetime] = None
     fecha_hasta: Optional[datetime] = None
+    # Deterministic validation filters (applied when estado=None/activos)
+    excluir_adjudicados: bool = True       # exclude processes with a proveedor_adjudicado
+    palabras_negativas: tuple[str, ...] = Field(default=())  # e.g. ("vigilancia","aseo")
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=20, ge=1, le=100)
 
@@ -55,6 +58,9 @@ class SecopProcess(BaseModel):
     fecha_publicacion: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     duracion: Optional[int] = None
     unidad_duracion: Optional[str] = None
+    # Validation fields — non-null proveedor_adjudicado means process is already awarded
+    proveedor_adjudicado: Optional[str] = None
+    fecha_cierre: Optional[datetime] = None
 
 
 class SecopSearchResult(BaseModel):

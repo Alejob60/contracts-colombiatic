@@ -43,6 +43,9 @@ _SELECT_FIELDS = ",".join([
     "fecha_de_publicacion_del",
     "duracion",
     "unidad_de_duracion",
+    # Note: proveedor_adjudicado / fecha_de_cierre_del_proceso are NOT available
+    # in the datos.gov.co p6dx-8zbt dataset. Deterministic filtering for those
+    # fields is applied at the local-cache layer (secop_cache_search.py).
 ])
 
 
@@ -84,6 +87,9 @@ def _build_where(f: SecopFilter) -> list[str]:
                 "(fecha_de_publicacion_del IS NULL "
                 "OR fecha_de_publicacion_del>='2015-01-01T00:00:00.000')"
             )
+        # Note: proveedor_adjudicado / fecha_de_cierre filters cannot be applied
+        # at the SODA level because those columns don't exist in the p6dx-8zbt
+        # dataset. The deterministic hard filters run at the local-cache layer.
     # year filter — when set, overrides any date range
     if f.year:
         clauses.append(f"fecha_de_publicacion_del>='{f.year}-01-01T00:00:00.000'")
@@ -144,6 +150,11 @@ def _normalize_row(row: dict[str, Any]) -> SecopProcess | None:
         except (ValueError, TypeError):
             duracion = None
 
+        # proveedor_adjudicado — not available in SODA p6dx-8zbt dataset.
+        # Will be null for all SODA-sourced processes; only populated from local cache.
+        proveedor_adjudicado = None
+        fecha_cierre = None
+
         return SecopProcess(
             proceso_id=str(proceso_id),
             entidad=row.get("entidad", ""),
@@ -161,6 +172,8 @@ def _normalize_row(row: dict[str, Any]) -> SecopProcess | None:
             fecha_publicacion=fecha,
             duracion=duracion,
             unidad_duracion=row.get("unidad_de_duracion"),
+            proveedor_adjudicado=proveedor_adjudicado,
+            fecha_cierre=fecha_cierre,
         )
     except Exception as exc:
         logger.warning("Could not normalize SECOP row: %s — %s", row.get("id_del_proceso"), exc)
@@ -257,6 +270,21 @@ class SecopSodaGateway(ISecopGateway):
             proc = _normalize_row(row)
             if proc:
                 processes.append(proc)
+
+        # Post-process: apply negative keyword exclusions (SODA has no NOT LIKE support)
+        if filters.palabras_negativas and processes:
+            lower_kws = [kw.lower() for kw in filters.palabras_negativas if kw.strip()]
+            if lower_kws:
+                def _matches_negative(p: SecopProcess) -> bool:
+                    haystack = (p.nombre_del_procedimiento + " " + p.descripcion).lower()
+                    return any(kw in haystack for kw in lower_kws)
+                before = len(processes)
+                processes = [p for p in processes if not _matches_negative(p)]
+                if len(processes) < before:
+                    logger.debug(
+                        "Negative keyword filter removed %d/%d processes",
+                        before - len(processes), before,
+                    )
 
         total = 0
         if count_rows:

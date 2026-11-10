@@ -41,19 +41,21 @@ _MIN_WARM_SIZE = 5_000 # cache is "warm" when it has this many records
 
 def _proc_to_row(proc: "SecopProcess") -> dict:
     return {
-        "proceso_id":   proc.proceso_id,
-        "nombre":       proc.nombre_del_procedimiento or "",
-        "entidad":      proc.entidad or "",
-        "nit_entidad":  proc.nit_entidad or None,
-        "departamento": proc.departamento_entidad or None,
-        "ciudad":       proc.ciudad_entidad or None,
-        "modalidad":    proc.modalidad or None,
-        "tipo_contrato":proc.tipo_contrato or None,
-        "estado":       proc.estado or None,
-        "precio_base":  float(proc.precio_base) if proc.precio_base else None,
-        "unspsc":       proc.codigo_unspsc or None,
-        "url_proceso":  proc.url_proceso or None,
-        "fecha_pub":    proc.fecha_publicacion,
+        "proceso_id":           proc.proceso_id,
+        "nombre":               proc.nombre_del_procedimiento or "",
+        "entidad":              proc.entidad or "",
+        "nit_entidad":          proc.nit_entidad or None,
+        "departamento":         proc.departamento_entidad or None,
+        "ciudad":               proc.ciudad_entidad or None,
+        "modalidad":            proc.modalidad or None,
+        "tipo_contrato":        proc.tipo_contrato or None,
+        "estado":               proc.estado or None,
+        "precio_base":          float(proc.precio_base) if proc.precio_base else None,
+        "unspsc":               proc.codigo_unspsc or None,
+        "url_proceso":          proc.url_proceso or None,
+        "fecha_pub":            proc.fecha_publicacion,
+        "proveedor_adjudicado": proc.proveedor_adjudicado or None,
+        "fecha_cierre":         proc.fecha_cierre or None,
     }
 
 
@@ -74,28 +76,31 @@ async def _upsert_processes(
                 INSERT INTO contracts.secop_processes_cache
                   (proceso_id, nombre, entidad, nit_entidad, departamento, ciudad,
                    modalidad, tipo_contrato, estado, precio_base, unspsc,
-                   url_proceso, fecha_pub, soda_synced_at)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,now())
+                   url_proceso, fecha_pub, proveedor_adjudicado, fecha_cierre,
+                   soda_synced_at)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now())
                 ON CONFLICT (proceso_id) DO UPDATE SET
-                  nombre         = EXCLUDED.nombre,
-                  entidad        = EXCLUDED.entidad,
-                  nit_entidad    = EXCLUDED.nit_entidad,
-                  departamento   = EXCLUDED.departamento,
-                  ciudad         = EXCLUDED.ciudad,
-                  modalidad      = EXCLUDED.modalidad,
-                  tipo_contrato  = EXCLUDED.tipo_contrato,
-                  estado         = EXCLUDED.estado,
-                  precio_base    = EXCLUDED.precio_base,
-                  unspsc         = EXCLUDED.unspsc,
-                  url_proceso    = EXCLUDED.url_proceso,
-                  fecha_pub      = EXCLUDED.fecha_pub,
-                  soda_synced_at = now()
+                  nombre              = EXCLUDED.nombre,
+                  entidad             = EXCLUDED.entidad,
+                  nit_entidad         = EXCLUDED.nit_entidad,
+                  departamento        = EXCLUDED.departamento,
+                  ciudad              = EXCLUDED.ciudad,
+                  modalidad           = EXCLUDED.modalidad,
+                  tipo_contrato       = EXCLUDED.tipo_contrato,
+                  estado              = EXCLUDED.estado,
+                  precio_base         = EXCLUDED.precio_base,
+                  unspsc              = EXCLUDED.unspsc,
+                  url_proceso         = EXCLUDED.url_proceso,
+                  fecha_pub           = EXCLUDED.fecha_pub,
+                  proveedor_adjudicado= EXCLUDED.proveedor_adjudicado,
+                  fecha_cierre        = EXCLUDED.fecha_cierre,
+                  soda_synced_at      = now()
                 """,
                 row["proceso_id"], row["nombre"], row["entidad"],
                 row["nit_entidad"], row["departamento"], row["ciudad"],
                 row["modalidad"], row["tipo_contrato"], row["estado"],
                 row["precio_base"], row["unspsc"], row["url_proceso"],
-                row["fecha_pub"],
+                row["fecha_pub"], row["proveedor_adjudicado"], row["fecha_cierre"],
             )
             upserted += 1
         except Exception as exc:
