@@ -14,7 +14,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Search, User, Bookmark, FileText, Bot, Bell, BarChart3,
   Users, Package, PlusCircle, Zap, ChevronLeft, ChevronRight,
-  Home, Menu, X, Lock, Settings,
+  Home, Menu, X, Lock, Settings, TrendingUp,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { UsageMeter } from '@/components/usage/UsageMeter';
@@ -39,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   // Mi empresa
   { icon: User,        label: 'Perfil empresa',    path: '/dashboard/perfil',             proOnly: false, group: 'empresa' },
   { icon: FileText,    label: 'Documentos RAG',    path: '/dashboard/documentos',         proOnly: true,  group: 'empresa' },
+  { icon: TrendingUp,  label: 'Capacidad K',       path: '/dashboard/k-residual',         proOnly: false, group: 'empresa' },
   // Licitaciones
   { icon: Bookmark,    label: 'Guardados',         path: '/dashboard/guardados',          proOnly: false, group: 'licitaciones' },
   { icon: Package,     label: 'Workspace',         path: '/dashboard/guardados',          proOnly: true,  group: 'licitaciones' },

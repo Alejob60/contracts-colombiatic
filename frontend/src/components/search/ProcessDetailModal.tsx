@@ -158,14 +158,17 @@ export function ProcessDetailModal({ process, onClose }: ProcessDetailModalProps
 
           {/* SECOP notice with working link */}
           <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3 text-xs text-stone-500">
-            <p className="text-amber-400 font-medium mb-0.5">ℹ️ Acceso directo al proceso</p>
+            <p className="text-amber-400 font-medium mb-1">ℹ️ Acceso directo al proceso</p>
             <a
-              href={`https://www.secop.gov.co/CO1BusinessLine/Tendering/ContractNoticeView/Index?notice=${process.proceso_id}`}
+              href={`https://www.secop.gov.co/Public/Tendering/ProcessSearch/Index?q=${encodeURIComponent(process.proceso_id)}`}
               target="_blank" rel="noopener noreferrer"
               className="text-emerald-400 hover:text-emerald-300 underline">
-              Abrir en SECOP II (www.secop.gov.co) →
+              Buscar {process.proceso_id} en SECOP II →
             </a>
-            <span className="ml-2 text-stone-600">(community.secop.gov.co presenta errores frecuentes)</span>
+            <p className="text-stone-700 mt-1 text-[10px]">
+              Código: <span className="font-mono text-stone-500">{process.proceso_id}</span>
+              {' · '}Estado puede no ser actual — verificar en SECOP II
+            </p>
           </div>
 
           {evalError && (

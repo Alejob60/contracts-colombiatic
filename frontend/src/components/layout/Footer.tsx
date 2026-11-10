@@ -47,11 +47,11 @@ export function Footer() {
           <h3 className="text-stone-300 font-semibold text-xs mb-3 uppercase tracking-wider">Servicios</h3>
           <ul className="space-y-2">
             {[
-              { label: 'Buscar licitaciones', to: '/buscar' },
-              { label: 'Evaluador IA de pliegos', to: '/pricing' },
-              { label: 'Alertas WhatsApp', to: '/pricing' },
-              { label: 'Sync SIA OBSERVA', to: '/pricing' },
-              { label: 'Publicar en SECOP II', to: '/pricing' },
+              { label: 'Buscar licitaciones SECOP II', to: '/buscar' },
+              { label: 'Evaluador IA de viabilidad', to: '/pricing' },
+              { label: 'Alertas de nuevos procesos', to: '/pricing' },
+              { label: 'Workspace y auto-llenado', to: '/pricing' },
+              { label: 'Red B2B de contratistas', to: '/pricing' },
             ].map((link) => (
               <li key={link.label}>
                 <Link to={link.to} className="text-stone-500 hover:text-stone-300 text-xs transition-colors">

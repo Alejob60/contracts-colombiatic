@@ -104,10 +104,12 @@ export function ResultCard({ process, isBlurred = false, onUpgrade }: ResultCard
               {process.nombre_del_procedimiento}
             </h3>
           </div>
-          <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border
-            whitespace-nowrap ${estadoColor(process.estado)}`}>
-            {process.estado}
-          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border
+              whitespace-nowrap ${estadoColor(process.estado)}`}>
+              {process.estado}
+            </span>
+          </div>
         </div>
 
         {/* ── Metadata ── */}

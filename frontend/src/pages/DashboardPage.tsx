@@ -16,6 +16,7 @@ import { RedB2BPage }        from './dashboard/RedB2BPage';
 import { WorkspacePage }     from './dashboard/WorkspacePage';
 import { ExternalProcessPage } from './dashboard/ExternalProcessPage';
 import { IntegracionSECOPPage } from './dashboard/IntegracionSECOPPage';
+import { KResidualPage }        from './dashboard/KResidualPage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -189,6 +190,7 @@ export function DashboardPage() {
           <Route path="workspace/:procesoId" element={<WorkspacePage />} />
           <Route path="proceso-externo" element={<ExternalProcessPage />} />
           <Route path="integracion-secop" element={<IntegracionSECOPPage />} />
+          <Route path="k-residual"       element={<KResidualPage />} />
         </Routes>
         </div>
       </main>
