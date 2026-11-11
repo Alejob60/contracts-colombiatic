@@ -15,6 +15,7 @@ interface Profile {
   departamento?: string; ciudad?: string;
   unspsc_codes: string[]; capacidad_k?: number;
   sector?: string; tamano?: string;
+  palabras_negativas: string[];
 }
 
 const TAMANOS = [
@@ -31,13 +32,14 @@ const labelCls = `block text-xs text-stone-500 mb-1.5 uppercase tracking-wider f
 
 export function PerfilPage() {
   const [profile, setProfile] = useState<Profile>({
-    nit: '', razon_social: '', unspsc_codes: [],
+    nit: '', razon_social: '', unspsc_codes: [], palabras_negativas: [],
   });
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [saved,    setSaved]    = useState(false);
   const [error,    setError]    = useState('');
   const [unspscInput, setUnspscInput] = useState('');
+  const [negKwInput, setNegKwInput] = useState('');
 
   useEffect(() => {
     const token = getContractsToken();
@@ -63,6 +65,16 @@ export function PerfilPage() {
 
   const removeUnspsc = (code: string) =>
     setProfile(p => ({ ...p, unspsc_codes: p.unspsc_codes.filter(c => c !== code) }));
+
+  const addNegKw = () => {
+    const kw = negKwInput.trim().toLowerCase();
+    if (kw && !(profile.palabras_negativas || []).includes(kw)) {
+      setProfile(p => ({ ...p, palabras_negativas: [...(p.palabras_negativas || []), kw] }));
+    }
+    setNegKwInput('');
+  };
+  const removeNegKw = (kw: string) =>
+    setProfile(p => ({ ...p, palabras_negativas: (p.palabras_negativas || []).filter(k => k !== kw) }));
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,6 +251,44 @@ export function PerfilPage() {
           )}
           <p className="text-stone-600 text-xs mt-1.5">Presiona Enter o coma para agregar. Estos códigos determinan qué licitaciones coinciden con tu empresa.</p>
         </div>
+
+            {/* Palabras negativas — search exclusion filter */}
+            <div>
+              <label className={labelCls}>Excluir de búsquedas</label>
+              <p className="text-xs text-stone-600 mb-2">
+                Procesos que contengan estas palabras se ocultarán automáticamente de tus resultados.
+              </p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  value={negKwInput}
+                  onChange={e => setNegKwInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addNegKw())}
+                  placeholder="ej: vigilancia, aseo, personal temporal"
+                  className={inputCls + ' flex-1'}
+                />
+                <button
+                  type="button"
+                  onClick={addNegKw}
+                  className="px-3 py-2 bg-red-500/10 border border-red-500/20 text-red-400
+                    hover:bg-red-500/20 rounded-xl text-sm transition-colors flex items-center gap-1">
+                  <X className="w-3.5 h-3.5" /> Excluir
+                </button>
+              </div>
+              {(profile.palabras_negativas || []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {(profile.palabras_negativas || []).map(kw => (
+                    <span key={kw} className="flex items-center gap-1 text-xs bg-red-500/8
+                      border border-red-500/15 text-red-400 px-2 py-0.5 rounded-full">
+                      🚫 {kw}
+                      <button onClick={() => removeNegKw(kw)}
+                        className="text-red-600 hover:text-red-400 ml-0.5">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
         <div className="flex items-center justify-between pt-2">
           <Link to="/dashboard" className="text-stone-500 hover:text-stone-300 text-sm transition-colors">

@@ -44,6 +44,7 @@ class GatedSearchResponse:
         "cached", "response_time_ms",
         "remaining_free_searches", "is_gated", "upgrade_url",
         "last_synced", "cache_age_minutes",
+        "profile_filters_active",
     )
 
     def __init__(
@@ -52,6 +53,7 @@ class GatedSearchResponse:
         results: list[dict[str, Any]],
         remaining: int,
         is_gated: bool,
+        profile_filters_active: bool = False,
     ) -> None:
         self.results = results
         self.total = base.total
@@ -64,6 +66,7 @@ class GatedSearchResponse:
         self.upgrade_url = "/pricing"
         self.last_synced: str | None = None
         self.cache_age_minutes: int | None = None
+        self.profile_filters_active = profile_filters_active
 
     def to_dict(self) -> dict[str, Any]:
         d = {
@@ -76,6 +79,7 @@ class GatedSearchResponse:
             "remaining_free_searches": self.remaining_free_searches,
             "is_gated": self.is_gated,
             "upgrade_url": self.upgrade_url,
+            "profile_filters_active": self.profile_filters_active,
         }
         if self.last_synced:
             d["last_synced"] = self.last_synced
@@ -100,8 +104,37 @@ class SearchSecopUseCase:
         filters: SecopFilter,
         plan_tier: str | None,          # None=anonymous, 'FREE', 'PRO_LICITADOR'
         client_ip: str,
+        user_id: str | None = None,
     ) -> GatedSearchResponse:
         is_pro = plan_tier in {"PRO_LICITADOR", "PRO"}
+
+        # ── 0. Enrich filter from company profile (PRO only) ──────────────
+        # If the user hasn't set an explicit UNSPSC filter, auto-apply their
+        # registered codes and negative keywords from their company profile.
+        # This makes every search feel personalized without requiring manual setup.
+        profile_unspsc: list[str] = []
+        profile_neg_kws: list[str] = []
+        if is_pro and user_id and not filters.codigo_unspsc:
+            try:
+                from app.application.manage_company import get_company_profile
+                profile = await get_company_profile(user_id, self._settings)
+                if profile:
+                    profile_unspsc = list(profile.get("unspsc_codes") or [])
+                    profile_neg_kws = list(profile.get("palabras_negativas") or [])
+            except Exception as exc:
+                logger.debug("Could not load profile for search enrichment: %s", exc)
+
+        # Merge profile palabras_negativas with any explicitly passed ones
+        all_neg_kws = tuple(set(list(filters.palabras_negativas) + profile_neg_kws))
+        if all_neg_kws != filters.palabras_negativas or (profile_unspsc and not filters.codigo_unspsc):
+            filters = filters.model_copy(update={
+                "palabras_negativas": all_neg_kws,
+                # Only set UNSPSC from profile if exactly one code registered
+                # (multiple codes → too restrictive; let user search freely)
+                **({"codigo_unspsc": profile_unspsc[0]} if len(profile_unspsc) == 1 and not filters.codigo_unspsc else {}),
+            })
+
+        _profile_active = bool(profile_neg_kws or profile_unspsc)
 
         # ── 1. Freemium gate check (anonymous only) ────────────────────────
         if not is_pro:
@@ -114,6 +147,7 @@ class SearchSecopUseCase:
                     results=[],
                     remaining=0,
                     is_gated=True,
+                    profile_filters_active=_profile_active,
                 )
 
         # ── 2. Cache lookup (Redis short-term) ───────────────────────────
@@ -143,6 +177,7 @@ class SearchSecopUseCase:
                 results=result_dicts,
                 remaining=remaining,
                 is_gated=False,
+                profile_filters_active=_profile_active,
             )
 
         # ── 3. Local PostgreSQL cache (Sprint 10A — freshness < 2h) ──────
@@ -185,6 +220,7 @@ class SearchSecopUseCase:
                 results=result_dicts,
                 remaining=remaining,
                 is_gated=False,
+                profile_filters_active=_profile_active,
             )
             # Add freshness metadata
             if last_synced:
@@ -221,4 +257,5 @@ class SearchSecopUseCase:
             results=result_dicts,
             remaining=remaining,
             is_gated=False,
+            profile_filters_active=_profile_active,
         )

@@ -160,6 +160,7 @@ async def search_secop(
         filters=filters,
         plan_tier=plan_tier,
         client_ip=client_ip,
+        user_id=str(user.get("sub") or user.get("userId") or "") if user else None,
     )
 
     payload = response.to_dict()

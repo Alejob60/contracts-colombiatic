@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import {
   Search, FileText, Bell, BarChart3, Users,
-  ArrowRight, Zap, Building2, Bookmark,
+  ArrowRight, Zap, Building2, Bookmark, TrendingUp,
 } from 'lucide-react';
 import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
 import { DashboardSidebar, MobileSidebarTrigger } from '@/components/layout/DashboardSidebar';
@@ -19,17 +19,6 @@ import { IntegracionSECOPPage } from './dashboard/IntegracionSECOPPage';
 import { KResidualPage }        from './dashboard/KResidualPage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
-
-const FEATURE_CARDS = [
-  { icon: Search,    title: 'Búsqueda ilimitada',  desc: 'Sprint 1 ✓ — activo', done: true,  to: '/buscar' },
-  { icon: Building2, title: 'Perfil de empresa',   desc: 'Sprint 3 ✓ — activo', done: true,  to: '/dashboard/perfil' },
-  { icon: Bookmark,  title: 'Procesos guardados',  desc: 'Sprint 3 ✓ — activo', done: true,  to: '/dashboard/guardados' },
-  { icon: FileText,  title: 'Documentos RAG',      desc: 'Sprint 4 ✓ — activo', done: true,  to: '/dashboard/documentos' },
-  { icon: BarChart3, title: 'Evaluador IA',         desc: 'Sprint 5 ✓ — activo', done: true,  to: '/dashboard/evaluaciones' },
-  { icon: Bell,      title: 'Alertas Email',     desc: 'Sprint 6 ✓ — activo', done: true,  to: '/dashboard/alertas' },
-  { icon: BarChart3, title: 'Analítica',          desc: 'Sprint 7 ✓ — activo', done: true,  to: '/dashboard/analitica' },
-  { icon: Users,     title: 'Red B2B',            desc: 'Sprint 8 ✓ — activo', done: true,  to: '/dashboard/b2b' },
-];
 
 function DashboardHome() {
   const { user, isPro } = useAuthStore();
@@ -114,29 +103,64 @@ function DashboardHome() {
         </Link>
       </div>
 
-      {/* Modules */}
-      <h2 className="text-stone-500 text-xs uppercase tracking-wider font-medium mb-4">
-        Módulos del Dashboard
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {FEATURE_CARDS.map((f) => (
-          <Link key={f.title} to={f.to}
-            className={`bg-white/[0.02] border border-white/8 rounded-2xl p-5 transition-all ${
-              f.done
-                ? 'hover:border-emerald-500/20 hover:bg-white/[0.04] cursor-pointer'
-                : 'opacity-50 cursor-not-allowed pointer-events-none'
-            }`}>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${
-              f.done ? 'bg-emerald-500/15' : 'bg-white/5'
-            }`}>
-              <f.icon className={`w-4 h-4 ${f.done ? 'text-emerald-400' : 'text-stone-500'}`} />
-            </div>
-            <h3 className="text-stone-300 font-medium text-sm mb-0.5">{f.title}</h3>
-            <p className={`text-xs ${f.done ? 'text-emerald-600' : 'text-stone-600'}`}>
-              {f.desc}
+      {/* Quick actions grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Link to="/buscar"
+          className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20
+            rounded-2xl p-5 hover:bg-emerald-500/15 transition-all group">
+          <div>
+            <p className="text-white font-semibold">Buscar licitaciones</p>
+            <p className="text-emerald-400/70 text-sm mt-0.5">SECOP II · caché local · filtros personalizados</p>
+          </div>
+          <Search className="w-8 h-8 text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
+        </Link>
+        <Link to={isPro ? '/dashboard/evaluaciones' : '/pricing'}
+          className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20
+            rounded-2xl p-5 hover:bg-purple-500/15 transition-all group">
+          <div>
+            <p className="text-white font-semibold">Evaluar viabilidad con IA</p>
+            <p className="text-purple-400/70 text-sm mt-0.5">
+              {isPro ? 'Claude · análisis de pliegos' : '🔒 Solo Plan PRO'}
             </p>
-          </Link>
-        ))}
+          </div>
+          <Zap className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform shrink-0" />
+        </Link>
+        <Link to="/dashboard/perfil"
+          className="flex items-center justify-between bg-blue-500/10 border border-blue-500/20
+            rounded-2xl p-5 hover:bg-blue-500/15 transition-all group">
+          <div>
+            <p className="text-white font-semibold">Perfil de empresa</p>
+            <p className="text-blue-400/70 text-sm mt-0.5">UNSPSC · filtros personalizados · capacidad K</p>
+          </div>
+          <Building2 className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform shrink-0" />
+        </Link>
+        <Link to="/dashboard/k-residual"
+          className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20
+            rounded-2xl p-5 hover:bg-amber-500/15 transition-all group">
+          <div>
+            <p className="text-white font-semibold">Capacidad Residual K</p>
+            <p className="text-amber-400/70 text-sm mt-0.5">habilitación financiera · SMMLV</p>
+          </div>
+          <TrendingUp className="w-8 h-8 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
+        </Link>
+        <Link to="/dashboard/alertas"
+          className="flex items-center justify-between bg-rose-500/10 border border-rose-500/20
+            rounded-2xl p-5 hover:bg-rose-500/15 transition-all group">
+          <div>
+            <p className="text-white font-semibold">Alertas de procesos</p>
+            <p className="text-rose-400/70 text-sm mt-0.5">nuevos procesos según tu perfil</p>
+          </div>
+          <Bell className="w-8 h-8 text-rose-400 group-hover:scale-110 transition-transform shrink-0" />
+        </Link>
+        <Link to="/dashboard/b2b"
+          className="flex items-center justify-between bg-teal-500/10 border border-teal-500/20
+            rounded-2xl p-5 hover:bg-teal-500/15 transition-all group">
+          <div>
+            <p className="text-white font-semibold">Red B2B</p>
+            <p className="text-teal-400/70 text-sm mt-0.5">subcontratistas · consorcios · alianzas</p>
+          </div>
+          <Users className="w-8 h-8 text-teal-400 group-hover:scale-110 transition-transform shrink-0" />
+        </Link>
       </div>
     </>
   );
