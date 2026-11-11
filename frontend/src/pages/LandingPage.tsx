@@ -80,7 +80,7 @@ const SERVICES = [
       'Búsqueda en texto libre y por código UNSPSC',
       'Filtros avanzados por departamento y modalidad',
       '3 búsquedas gratuitas por IP, sin registro',
-      'Resultados completos con enlaces directos SECOP II',
+      'Resultados completos con enlaces directos a SECOP II',
     ],
   },
   {
@@ -107,7 +107,7 @@ const SERVICES = [
     features: [
       'Carga ilimitada de documentos corporativos',
       'Indexación automática con IA (embeddings vectoriales)',
-      'Gestión de códigos UNSPSC y capacidad K',
+      'Gestión de códigos UNSPSC y capacidad K residual',
       '"Visto Bueno" de empresa para cada proceso',
     ],
   },
@@ -117,26 +117,26 @@ const SERVICES = [
     badgeColor: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
     title: 'Alertas',
     headline: 'Nunca te pierdas una licitación compatible',
-    description: 'Configura alertas por WhatsApp o email. Recibe notificación automática cuando aparece un proceso con más del 80% de match con tu perfil.',
+    description: 'Configura alertas por email. Recibe notificación automática cuando aparece un proceso con más del 80% de match con tu perfil.',
     features: [
-      'Alertas WhatsApp y email personalizadas',
+      'Alertas por email personalizadas',
       'Umbral configurable de match (default 80%)',
       'Filtros por UNSPSC, departamento y presupuesto',
-      'Frecuencia: tiempo real, diaria o semanal',
+      'Frecuencia: diaria o semanal según tu preferencia',
     ],
   },
   {
     icon: RefreshCw,
     badge: 'PRO',
     badgeColor: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
-    title: 'Reportar',
+    title: 'Workspace',
     headline: 'Auto-llenado de cotizaciones y propuestas',
     description: 'Sube el ZIP de documentos del proceso. La IA auto-llena las plantillas Excel con tus datos de empresa y genera el borrador de propuesta técnica.',
     features: [
-      'Descarga y procesamiento automático de documentos SECOP II',
-      'Auto-llenado de formatos Excel de cotización con NIT, razón social, etc.',
+      'Procesamiento automático de paquetes de documentos SECOP II',
+      'Auto-llenado de formatos Excel de cotización (NIT, razón social, etc.)',
       'Borrador de propuesta técnica generado por IA',
-      'Compatible con procesos recientes no disponibles en la API pública',
+      'Compatible con procesos sin documentos disponibles en la API pública',
     ],
   },
   {
@@ -157,16 +157,16 @@ const SERVICES = [
 
 const HOW_IT_WORKS = [
   { step: '01', icon: Search, title: 'Busca sin registro', description: 'Escribe tu actividad —"desarrollo de software", "obra civil", "suministro equipos"— y el sistema filtra los procesos abiertos en SECOP II. 3 búsquedas gratuitas para probar.' },
-  { step: '02', icon: Bot, title: 'La IA evalúa el pliego', description: 'Con Plan PRO, el agente cruza el pliego de condiciones con tu RUP y documentos corporativos. Resultado: Match Score, checklist y plan de acción.' },
-  { step: '03', icon: Bell, title: 'Recibe alertas automáticas', description: 'Configura tu perfil una vez. Cada vez que aparezca un proceso compatible, te llega la alerta a WhatsApp antes de que lo vea la competencia.' },
-  { step: '04', icon: RefreshCw, title: 'Gestiona y reporta', description: 'Con el módulo Reportar (próximamente) sincronizas tus contratos activos con SIA OBSERVA automáticamente, sin re-digitar un solo campo.' },
+  { step: '02', icon: Bot, title: 'La IA evalúa el pliego', description: 'Con Plan PRO, el agente cruza el pliego de condiciones con tu RUP y documentos corporativos. Resultado: Match Score, checklist de habilitación y plan de acción.' },
+  { step: '03', icon: Bell, title: 'Recibe alertas automáticas', description: 'Configura tu perfil una vez. Cada vez que aparezca un proceso compatible, te llega la alerta por email antes de que lo vea la competencia.' },
+  { step: '04', icon: FileText, title: 'Prepara tu oferta más rápido', description: 'El Workspace auto-llena los formatos Excel de cotización con tus datos de empresa. Menos re-digitación, más tiempo para trabajar en la propuesta.' },
 ];
 
 const STATS = [
-  { value: '5M+', label: 'Procesos SECOP II indexados' },
-  { value: '32', label: 'Departamentos cubiertos' },
-  { value: '< 2s', label: 'Tiempo de respuesta' },
-  { value: '24/7', label: 'Actualización automática' },
+  { value: '5M+',    label: 'Procesos SECOP II indexados' },
+  { value: '32',     label: 'Departamentos cubiertos' },
+  { value: '< 2s',   label: 'Tiempo de búsqueda' },
+  { value: 'Diaria', label: 'Frecuencia de actualización' },
 ];
 
 const FAQS = [
@@ -213,16 +213,16 @@ export function LandingPage() {
             </span>
 
             <h1 className="font-bold text-5xl md:text-6xl lg:text-7xl text-white mb-5 leading-tight">
-              Encuentra, evalúa y gana{' '}
+              Deja de perder{' '}
               <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
                 licitaciones
               </span>
-              {' '}con IA
+              {' '}que podías ganar
             </h1>
 
             <p className="text-stone-400 text-lg md:text-xl max-w-2xl mx-auto mb-3 leading-relaxed">
-              La plataforma inteligente para el ciclo completo de contratación pública en Colombia.
-              Desde encontrar la oportunidad hasta reportar en SIA OBSERVA.
+              ColombiaTIC Contracts busca, filtra y evalúa procesos de SECOP II con IA.
+              Tú decides cuáles perseguir — con datos, no con instinto.
             </p>
             <p className="text-stone-500 text-sm mb-10">
               <span className="text-emerald-400 font-medium">3 búsquedas gratis</span>
@@ -256,9 +256,9 @@ export function LandingPage() {
             viewport={{ once: true }} className="text-center mb-10"
           >
             <h2 className="font-bold text-3xl md:text-4xl text-white mb-3">
-              Resultados reales de SECOP II
+              Así se ve en acción
             </h2>
-            <p className="text-stone-400 text-sm">Datos en vivo desde datos.gov.co · Actualización diaria</p>
+            <p className="text-stone-400 text-sm">Ejemplo de procesos actuales de SECOP II · Datos en vivo desde datos.gov.co</p>
           </motion.div>
 
           <div className="space-y-3 mb-7">
@@ -275,8 +275,7 @@ export function LandingPage() {
 
           <p className="text-center text-stone-600 text-xs mb-4">
             El tercer resultado está protegido. <Link to="/auth" className="text-emerald-500 hover:text-emerald-400">Regístrate gratis</Link> para desbloquearlo.
-          </p>
-          <div className="text-center">
+          </p>          <div className="text-center">
             <Link to="/buscar"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-400
                 text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm">
@@ -286,7 +285,34 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── 6 Services ───────────────────────────────────────────────────── */}
+      {/* ── For whom ─────────────────────────────────────────────────────── */}
+      <section className="py-16 px-4 border-t border-white/5">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <p className="text-stone-500 text-xs uppercase tracking-widest font-medium mb-6">
+              Hecho para contratistas colombianos
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {[
+                '🖥️ Empresas de TI y software',
+                '🏗️ Firmas de ingeniería y obra civil',
+                '📦 Proveedores de suministros',
+                '📋 Consultores y OPS',
+                '🔬 Laboratorios y salud',
+                '🎓 Formación y capacitación',
+              ].map(label => (
+                <span key={label}
+                  className="px-4 py-2 bg-white/[0.03] border border-white/8 rounded-full
+                    text-stone-400 text-sm hover:border-emerald-500/20 hover:text-stone-300 transition-colors">
+                  {label}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Services ─────────────────────────────────────────────────────── */}
       <section className="py-20 px-4 border-t border-white/5 bg-brand-dark/30" id="servicios">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -381,10 +407,10 @@ export function LandingPage() {
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { before: 'Buscar manualmente en SECOP II por horas', after: 'Resultados filtrados en segundos', icon: Clock },
+              { before: 'Buscar manualmente en SECOP II por horas', after: 'Resultados filtrados por tu perfil en segundos', icon: Clock },
               { before: 'Leer 200 páginas de pliego para saber si aplicas', after: 'Diagnóstico IA en minutos con Match Score', icon: FileText },
-              { before: 'Enterarte tarde de licitaciones compatibles', after: 'Alerta a WhatsApp antes que la competencia', icon: Bell },
-              { before: 'Re-digitar datos de SECOP II en SIA OBSERVA cada mes', after: 'Sincronización automática sin tocar un campo', icon: RefreshCw },
+              { before: 'Enterarte tarde de licitaciones compatibles', after: 'Alerta por email cuando aparece un proceso a tu medida', icon: Bell },
+              { before: 'Re-digitar datos de empresa en cada formato de cotización', after: 'Auto-llenado de Excel con tus datos en un clic', icon: RefreshCw },
             ].map((item, idx) => (
               <motion.div
                 key={item.before}
@@ -418,7 +444,12 @@ export function LandingPage() {
             <h2 className="font-bold text-3xl md:text-4xl text-white mb-3">
               Un solo plan. Todo incluido.
             </h2>
-            <p className="text-stone-400 text-sm">Sin tarifas ocultas. Sin límites por módulo.</p>
+            <p className="text-stone-400 text-sm mb-2">Sin tarifas ocultas. Sin límites por módulo.</p>
+            <p className="text-stone-600 text-xs">
+              Un contrato de $50M te paga el plan PRO por{' '}
+              <span className="text-emerald-500 font-medium">28 años</span>.
+              ¿Vale la pena perdértelo por $149.000/mes?
+            </p>
           </motion.div>
           <PlanCard pricing={CONTRACTS_PRICING} />
         </div>
@@ -477,15 +508,21 @@ export function LandingPage() {
           viewport={{ once: true }} className="max-w-2xl mx-auto"
         >
           <h2 className="font-bold text-4xl md:text-5xl text-white mb-4 leading-tight">
-            Empieza a encontrar contratos hoy
+            Tu próximo contrato estatal{' '}
+            <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+              empieza aquí
+            </span>
           </h2>
-          <p className="text-stone-400 text-lg mb-8">
-            3 búsquedas gratuitas para probar. Sin tarjeta de crédito.
+          <p className="text-stone-400 text-lg mb-3">
+            3 búsquedas gratis para probar. Sin tarjeta. Sin letra pequeña.
+          </p>
+          <p className="text-stone-600 text-sm mb-8">
+            Activa el Plan PRO cuando quieras — cancela cuando quieras.
           </p>
           <Link to="/buscar"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-400
               text-white font-bold px-8 py-4 rounded-2xl hover:opacity-90 transition-opacity text-base mb-4">
-            Buscar licitaciones gratis <ArrowRight className="w-5 h-5" />
+            Buscar licitaciones ahora — es gratis <ArrowRight className="w-5 h-5" />
           </Link>
           <div className="flex flex-wrap justify-center gap-4 text-stone-600 text-xs mt-4">
             <Link to="/privacidad" className="hover:text-stone-400 transition-colors">Política de Privacidad</Link>
