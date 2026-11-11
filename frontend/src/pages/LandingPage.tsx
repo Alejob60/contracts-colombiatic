@@ -1,3 +1,4 @@
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { SearchBar } from '@/components/search/SearchBar';
@@ -6,67 +7,37 @@ import { PlanCard } from '@/components/pricing/PlanCard';
 import {
   Search, Bell, FileText,
   ArrowRight, CheckCircle2, RefreshCw,
-  FileUp, Bot, AlertCircle, Clock
+  FileUp, Bot, AlertCircle, Clock, Loader2,
 } from 'lucide-react';
 import { CONTRACTS_PRICING } from '@/lib/constants/pricing';
 import type { SecopProcessCard } from '@/types/secop';
 
-const MOCK_RESULTS: SecopProcessCard[] = [
-  {
-    proceso_id: 'CO1.REQ.DEMO1',
-    entidad: 'ALCALDÍA MUNICIPAL DE CALI',
-    nit_entidad: '800336534',
-    departamento_entidad: 'Valle del Cauca',
-    ciudad_entidad: 'Cali',
-    nombre_del_procedimiento: 'DESARROLLO E IMPLEMENTACIÓN DE PLATAFORMA DIGITAL PARA GESTIÓN DE TRÁMITES CIUDADANOS — SECRETARÍA DE TIC',
-    descripcion: 'Contratar el desarrollo e implementación de una plataforma digital que permita la gestión en línea de trámites y servicios ciudadanos de la Alcaldía de Cali.',
-    precio_base: '450000000',
-    modalidad: 'Licitación pública',
-    tipo_contrato: 'Prestación de servicios',
-    estado: 'Convocado',
-    codigo_unspsc: 'V1.81162000',
-    url_proceso: 'https://community.secop.gov.co',
-    fecha_publicacion: new Date().toISOString(),
-    duracion: 6,
-    unidad_duracion: 'mes(es)',
-  },
-  {
-    proceso_id: 'CO1.REQ.DEMO2',
-    entidad: 'GOBERNACIÓN DEL VALLE DEL CAUCA',
-    nit_entidad: '890399477',
-    departamento_entidad: 'Valle del Cauca',
-    ciudad_entidad: 'Cali',
-    nombre_del_procedimiento: 'SUMINISTRO DE EQUIPOS DE CÓMPUTO Y TECNOLOGÍA PARA DEPENDENCIAS ADMINISTRATIVAS DE LA GOBERNACIÓN',
-    descripcion: null,
-    precio_base: null,
-    modalidad: 'Selección abreviada',
-    tipo_contrato: 'Suministro',
-    estado: 'Publicado',
-    codigo_unspsc: 'V1.43211700',
-    url_proceso: null,
-    fecha_publicacion: new Date(Date.now() - 86400000 * 2).toISOString(),
-    duracion: 30,
-    unidad_duracion: 'día(s)',
-  },
-  {
-    proceso_id: 'CO1.REQ.DEMO3',
-    entidad: 'ECOPETROL S.A.',
-    nit_entidad: '899999068',
-    departamento_entidad: 'Bogotá D.C.',
-    ciudad_entidad: 'Bogotá',
-    nombre_del_procedimiento: 'CONSULTORÍA PARA DIAGNÓSTICO Y PLAN DE MODERNIZACIÓN DE INFRAESTRUCTURA TECNOLÓGICA',
-    descripcion: null,
-    precio_base: null,
-    modalidad: 'Concurso de méritos',
-    tipo_contrato: 'Consultoría',
-    estado: 'En evaluación',
-    codigo_unspsc: 'V1.81111600',
-    url_proceso: null,
-    fecha_publicacion: new Date(Date.now() - 86400000 * 5).toISOString(),
-    duracion: 90,
-    unidad_duracion: 'día(s)',
-  },
-];
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
+
+// Rotates through generic high-value queries so each visit shows different real results
+const DEMO_QUERIES = ['software', 'tecnología', 'consultoría', 'sistemas de información', 'infraestructura tecnológica'];
+
+function useLiveProcesses() {
+  const [results, setResults] = useState<SecopProcessCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const fetched = useRef(false);
+
+  useEffect(() => {
+    if (fetched.current) return;
+    fetched.current = true;
+    const q = DEMO_QUERIES[Math.floor(Math.random() * DEMO_QUERIES.length)];
+    fetch(`${API_BASE}/api/v1/secop/search?q=${encodeURIComponent(q)}&limit=3`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const live = (data?.results ?? []) as SecopProcessCard[];
+        setResults(live.slice(0, 3));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { results, loading };
+}
 
 const SERVICES = [
   {
@@ -197,6 +168,7 @@ const FAQS = [
 ];
 
 export function LandingPage() {
+  const { results: liveResults, loading: liveLoading } = useLiveProcesses();
   return (
     <div className="bg-brand-navy">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -261,25 +233,37 @@ export function LandingPage() {
             <p className="text-stone-400 text-sm">Ejemplo de procesos actuales de SECOP II · Datos en vivo desde datos.gov.co</p>
           </motion.div>
 
-          <div className="space-y-3 mb-7">
-            {MOCK_RESULTS.map((proc, idx) => (
-              <motion.div
-                key={proc.proceso_id}
-                initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ delay: idx * 0.08 }}
-              >
-                <ResultCard process={proc} isBlurred={idx === 2} onUpgrade={() => window.location.assign('/auth')} />
-              </motion.div>
-            ))}
+          <div className="space-y-3 mb-7 min-h-[180px]">
+            {liveLoading ? (
+              <div className="flex items-center justify-center py-16 gap-3 text-stone-600">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Cargando procesos actuales de SECOP II…</span>
+              </div>
+            ) : liveResults.length > 0 ? (
+              liveResults.map((proc, idx) => (
+                <motion.div
+                  key={proc.proceso_id}
+                  initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ delay: idx * 0.08 }}
+                >
+                  <ResultCard process={proc} isBlurred={idx === 2} onUpgrade={() => window.location.assign('/auth')} />
+                </motion.div>
+              ))
+            ) : null}
           </div>
 
-          <p className="text-center text-stone-600 text-xs mb-4">
-            El tercer resultado está protegido. <Link to="/auth" className="text-emerald-500 hover:text-emerald-400">Regístrate gratis</Link> para desbloquearlo.
-          </p>          <div className="text-center">
+          {liveResults.length > 0 && (
+            <p className="text-center text-stone-600 text-xs mb-4">
+              El tercer resultado está protegido.{' '}
+              <Link to="/auth" className="text-emerald-500 hover:text-emerald-400">Regístrate gratis</Link>{' '}
+              para desbloquearlo.
+            </p>
+          )}
+          <div className="text-center">
             <Link to="/buscar"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-400
                 text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm">
-              Buscar licitaciones abiertas ahora <ArrowRight className="w-4 h-4" />
+              Ver todos los procesos abiertos <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
