@@ -65,6 +65,10 @@ async def search_cache(
         if filters.query:
             where.append(f"search_tsv @@ plainto_tsquery('spanish', contracts.immutable_unaccent({_p(filters.query)}))")
 
+        # Entity filter — partial case-insensitive match
+        if filters.entidad:
+            where.append(f"entidad ILIKE {_p(f'%{filters.entidad.strip()}%')}")
+
         # Estado
         if filters.estado and filters.estado.lower() != "todos":
             where.append(f"estado = {_p(filters.estado)}")

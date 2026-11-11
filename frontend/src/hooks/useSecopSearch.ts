@@ -37,7 +37,7 @@ interface UseSecopSearchReturn {
   data: SecopSearchResult | null;
   loading: boolean;
   error: string | null;
-  search: (query: string, filters?: FilterValues, offset?: number) => Promise<void>;
+  search: (query: string, filters?: FilterValues, offset?: number, entidad?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -49,27 +49,27 @@ export function useSecopSearch(): UseSecopSearchReturn {
   const [error, setError] = useState<string | null>(null);
 
   const search = useCallback(
-    async (query: string, filters: FilterValues = {} as FilterValues, offset = 0) => {
+    async (query: string, filters: FilterValues = {} as FilterValues, offset = 0, entidad = '') => {
       setLoading(true);
       setError(null);
 
       const params = new URLSearchParams();
-      if (query) params.set('q', query);
-      if (filters.departamento) params.set('departamento', filters.departamento);
-      if (filters.municipio)    params.set('municipio',    filters.municipio);
-      if (filters.modalidad)    params.set('modalidad',    filters.modalidad);
+      if (query)   params.set('q',       query);
+      if (entidad) params.set('entidad', entidad);
+      if (filters.departamento)  params.set('departamento',  filters.departamento);
+      if (filters.municipio)     params.set('municipio',     filters.municipio);
+      if (filters.modalidad)     params.set('modalidad',     filters.modalidad);
       if (filters.tipo_contrato) params.set('tipo_contrato', filters.tipo_contrato);
-      if (filters.precio_min)   params.set('precio_min',   filters.precio_min);
-      if (filters.precio_max)   params.set('precio_max',   filters.precio_max);
+      if (filters.precio_min)    params.set('precio_min',    filters.precio_min);
+      if (filters.precio_max)    params.set('precio_max',    filters.precio_max);
       // Estado: map UI selector value to API param
       const estadoMap: Record<string, string> = {
-        activos:  '',          // API default shows Abierto/Convocado
-        todos:    'todos',     // all historical records
+        activos:  '',
+        todos:    'todos',
         cerrados: 'Cerrado',
       };
       const estadoApi = estadoMap[filters.estado_view ?? 'activos'] ?? '';
       if (estadoApi) params.set('estado', estadoApi);
-      // Year filter (specific year overrides date range)
       if (filters.year) params.set('year', filters.year);
       params.set('offset', String(offset));
       params.set('limit', '20');

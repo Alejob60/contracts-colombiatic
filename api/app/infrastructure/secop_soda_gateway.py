@@ -52,6 +52,10 @@ _SELECT_FIELDS = ",".join([
 def _build_where(f: SecopFilter) -> list[str]:
     """Convert SecopFilter fields into SODA $where clause fragments."""
     clauses: list[str] = []
+    # Entity filter — SECOP entity names are stored in uppercase; normalize to upper for match
+    if f.entidad:
+        safe = f.entidad.strip().replace("'", "''").upper()
+        clauses.append(f"upper(entidad) like upper('%{safe}%')")
     if f.departamento:
         safe = f.departamento.replace("'", "''")
         clauses.append(f"departamento_entidad='{safe}'")

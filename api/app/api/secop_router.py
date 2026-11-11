@@ -94,7 +94,9 @@ async def get_municipios(
 async def search_secop(
     request: Request,
     # ── Full-text search ───────────────────────────────────────────────
-    q: Annotated[str | None, Query(description="Texto libre")] = None,
+    q: Annotated[str | None, Query(description="Texto libre — objeto del contrato")] = None,
+    # ── Entity filter (new — Sprint 19) ───────────────────────────────
+    entidad: Annotated[str | None, Query(description="Nombre parcial de la entidad contratante")] = None,
     # ── Filters ───────────────────────────────────────────────────────
     departamento: Annotated[str | None, Query()] = None,
     municipio: Annotated[str | None, Query(description="Ciudad — usar junto con departamento")] = None,
@@ -142,6 +144,7 @@ async def search_secop(
 
     filters = SecopFilter(
         query=q,
+        entidad=entidad,
         departamento=departamento,
         municipio=municipio,
         modalidad=modalidad,

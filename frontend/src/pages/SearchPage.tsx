@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SearchBar } from '@/components/search/SearchBar';
 import { FilterPanel, type FilterValues } from '@/components/search/FilterPanel';
 import { ResultCard } from '@/components/search/ResultCard';
 import { ResultSkeleton } from '@/components/search/ResultSkeleton';
@@ -11,7 +10,7 @@ import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { FreshnessIndicator } from '@/components/search/FreshnessIndicator';
 import {
   ChevronLeft, ChevronRight,
-  X, Search, ListFilter, Clock, FileText, Trash2,
+  X, Search, ListFilter, Clock, Trash2, Building2, Loader2,
 } from 'lucide-react';
 
 const EMPTY_FILTERS: FilterValues = {
@@ -34,20 +33,25 @@ export function SearchPage() {
   const { data, loading, error, search } = useSecopSearch();
   const { history, push: pushHistory, remove: removeHistory, clear: clearHistory } = useSearchHistory();
 
-  const currentQuery = searchParams.get('q') ?? '';
+  // Dual-search state
+  const [entityInput, setEntityInput] = useState(searchParams.get('entidad') ?? '');
+  const [queryInput,  setQueryInput]  = useState(searchParams.get('q') ?? '');
+
+  const currentQuery  = searchParams.get('q') ?? '';
+  const currentEntidad = searchParams.get('entidad') ?? '';
 
   const runSearch = useCallback(
-    (q: string, f: FilterValues, off: number) => {
-      if (!q.trim() && !Object.values(f).some(Boolean)) return;
-      search(q, f, off);
+    (q: string, f: FilterValues, off: number, ent: string) => {
+      if (!q.trim() && !ent.trim() && !Object.values(f).some(Boolean)) return;
+      search(q, f, off, ent);
     },
     [search],
   );
 
   useEffect(() => {
-    if (currentQuery) runSearch(currentQuery, filters, offset);
+    if (currentQuery || currentEntidad) runSearch(currentQuery, filters, offset, currentEntidad);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentQuery, offset]);
+  }, [currentQuery, currentEntidad, offset]);
 
   useEffect(() => {
     if (data?.is_gated) setShowGate(true);
@@ -60,18 +64,32 @@ export function SearchPage() {
     return () => { document.body.style.overflow = ''; };
   }, [mobileFilters]);
 
-  const handleSearch = (q: string) => {
+  const handleSearch = () => {
+    const q   = queryInput.trim();
+    const ent = entityInput.trim();
     setOffset(0);
-    setSearchParams(q ? { q } : {});
-    runSearch(q, filters, 0);
-    if (q.trim()) pushHistory(q.trim()); // save to history
+    const sp: Record<string, string> = {};
+    if (q)   sp.q       = q;
+    if (ent) sp.entidad = ent;
+    setSearchParams(sp);
+    runSearch(q, filters, 0, ent);
+    if (q) pushHistory(q);
+  };
+
+  const handleEntityClear = () => {
+    setEntityInput('');
+    const sp: Record<string, string> = {};
+    if (queryInput.trim()) sp.q = queryInput.trim();
+    setSearchParams(sp);
+    setOffset(0);
+    runSearch(queryInput.trim(), filters, 0, '');
   };
 
   const handleFilters = (f: FilterValues) => {
     setFilters(f);
     setOffset(0);
     setMobileFilters(false);
-    runSearch(currentQuery, f, 0);
+    runSearch(currentQuery, f, 0, currentEntidad);
   };
 
   const LIMIT = 20;
@@ -91,34 +109,119 @@ export function SearchPage() {
         />
       )}
 
-      {/* ── Sticky search header ── */}
+      {/* ── Sticky search header — dual input ── */}
       <div className="sticky top-14 z-30 bg-brand-dark/95 backdrop-blur-xl border-b border-white/5 px-3 sm:px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3">
-          <div className="flex-1 min-w-0">
-            <SearchBar
-              initialQuery={currentQuery}
-              onSearch={handleSearch}
-              isLoading={loading}
-            />
-          </div>
-
-          {/* Mobile filter toggle */}
-          <button
-            onClick={() => setMobileFilters(true)}
-            className="lg:hidden relative shrink-0 flex items-center gap-1.5 px-3 py-2.5
-              bg-white/5 border border-white/10 rounded-xl text-stone-300 hover:text-white
-              hover:border-white/20 transition-all text-sm font-medium"
-            aria-label="Abrir filtros"
+        <div className="max-w-7xl mx-auto">
+          {/* Main dual-search row */}
+          <form
+            onSubmit={e => { e.preventDefault(); handleSearch(); }}
+            className="flex flex-col sm:flex-row gap-2"
           >
-            <ListFilter className="w-4 h-4" />
-            <span className="hidden sm:inline">Filtros</span>
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 rounded-full
-                text-[10px] text-white font-bold flex items-center justify-center">
-                {activeFilterCount}
-              </span>
+            {/* Entity input */}
+            <div className="relative sm:w-72 shrink-0">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
+              <input
+                type="text"
+                value={entityInput}
+                onChange={e => setEntityInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                placeholder="Entidad — ej: Hospital Psiquiátrico"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-8 py-2.5
+                  text-sm text-white placeholder-stone-600 focus:outline-none
+                  focus:border-blue-500/50 focus:bg-white/8 transition-all"
+              />
+              {entityInput && (
+                <button type="button" onClick={handleEntityClear}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-600 hover:text-stone-400">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Divider — hidden on mobile */}
+            {entityInput && (
+              <div className="hidden sm:flex items-center text-stone-700 text-xs font-medium shrink-0 select-none">
+                dentro de →
+              </div>
             )}
-          </button>
+
+            {/* Keyword / object input */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
+              <input
+                type="search"
+                autoComplete="off"
+                value={queryInput}
+                onChange={e => setQueryInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                placeholder={entityInput
+                  ? '¿Qué necesitan? ej: plataforma digital, ingeniero, software'
+                  : '¿Qué busca tu empresa? ej: desarrollo de software, obra civil'}
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2.5
+                  text-sm text-white placeholder-stone-600 focus:outline-none
+                  focus:border-emerald-500/50 focus:bg-white/8 transition-all"
+              />
+            </div>
+
+            {/* Search button */}
+            <button
+              type="submit"
+              disabled={loading || (!queryInput.trim() && !entityInput.trim())}
+              className="shrink-0 flex items-center gap-1.5 px-4 py-2.5
+                bg-gradient-to-r from-emerald-500 to-teal-400 text-white font-semibold
+                rounded-xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed
+                transition-all text-sm"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              <span className="hidden sm:inline">{loading ? 'Buscando' : 'Buscar'}</span>
+            </button>
+
+            {/* Mobile filter toggle */}
+            <button
+              type="button"
+              onClick={() => setMobileFilters(true)}
+              className="lg:hidden relative shrink-0 flex items-center gap-1.5 px-3 py-2.5
+                bg-white/5 border border-white/10 rounded-xl text-stone-300 hover:text-white
+                hover:border-white/20 transition-all text-sm font-medium"
+            >
+              <ListFilter className="w-4 h-4" />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 rounded-full
+                  text-[10px] text-white font-bold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </form>
+
+          {/* Active context chips */}
+          {(currentEntidad || (data && data.total > 0)) && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {currentEntidad && (
+                <span className="flex items-center gap-1 text-xs bg-blue-500/10 border border-blue-500/20
+                  text-blue-300 px-2.5 py-1 rounded-full">
+                  <Building2 className="w-3 h-3" />
+                  {currentEntidad}
+                  <button onClick={handleEntityClear} className="text-blue-500 hover:text-blue-300 ml-0.5">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {currentQuery && currentEntidad && (
+                <span className="text-xs text-stone-600">
+                  filtrando por: <span className="text-stone-400">"{currentQuery}"</span>
+                </span>
+              )}
+              {data && data.total > 0 && (
+                <span className="text-xs text-stone-600 ml-auto">
+                  {data.total.toLocaleString('es-CO')} procesos
+                  {(data as any).profile_filters_active && (
+                    <span className="ml-1.5 text-emerald-600">· filtros de tu perfil activos</span>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -311,7 +414,7 @@ export function SearchPage() {
                       <div key={h.query} className="flex items-center gap-0 bg-white/5 border border-white/8
                         rounded-lg overflow-hidden">
                         <button
-                          onClick={() => handleSearch(h.query)}
+                          onClick={() => { setQueryInput(h.query); handleSearch(); }}
                           className="px-3 py-1.5 text-xs text-stone-400 hover:text-white hover:bg-white/5
                             transition-colors flex items-center gap-1.5">
                           <Search className="w-3 h-3" />

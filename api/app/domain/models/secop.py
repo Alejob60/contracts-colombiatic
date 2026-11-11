@@ -19,6 +19,7 @@ class SecopFilter(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     query: Optional[str] = None
+    entidad: Optional[str] = None          # partial match on entity name
     departamento: Optional[str] = None
     municipio: Optional[str] = None       # ciudad_entidad — cascades from departamento
     modalidad: Optional[str] = None
