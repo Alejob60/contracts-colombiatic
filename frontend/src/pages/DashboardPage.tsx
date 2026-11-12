@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useAuthStore, getContractsToken } from '@/store/useAuthStore';
 import { DashboardSidebar, MobileSidebarTrigger } from '@/components/layout/DashboardSidebar';
+import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
+import { useProfileCompletion }    from '@/hooks/useProfileCompletion';
 import { PerfilPage }        from './dashboard/PerfilPage';
 import { GuardadosPage }     from './dashboard/GuardadosPage';
 import { DocumentosPage }    from './dashboard/DocumentosPage';
@@ -14,15 +16,17 @@ import { AlertasPage }       from './dashboard/AlertasPage';
 import { AnalyticaPage }     from './dashboard/AnalyticaPage';
 import { RedB2BPage }        from './dashboard/RedB2BPage';
 import { WorkspacePage }     from './dashboard/WorkspacePage';
-import { ExternalProcessPage } from './dashboard/ExternalProcessPage';
+import { ExternalProcessPage }  from './dashboard/ExternalProcessPage';
 import { IntegracionSECOPPage } from './dashboard/IntegracionSECOPPage';
 import { KResidualPage }        from './dashboard/KResidualPage';
+import { ProfileWizardPage }    from './dashboard/ProfileWizardPage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 function DashboardHome() {
   const { user, isPro } = useAuthStore();
   const [savedCount, setSavedCount] = useState<number | null>(null);
+  const { data: completion } = useProfileCompletion(true);
 
   useEffect(() => {
     const token = getContractsToken();
@@ -54,6 +58,13 @@ function DashboardHome() {
           <span className="text-stone-600 text-xs">{user?.email}</span>
         </div>
       </div>
+
+      {/* Profile completion banner — shown when score < 80 */}
+      {completion && completion.score < 80 && (
+        <div className="mb-6">
+          <ProfileCompletionBanner data={completion} variant="full" />
+        </div>
+      )}
 
       {/* PRO upgrade banner */}
       {!isPro && (
@@ -204,7 +215,8 @@ export function DashboardPage() {
         <div className="max-w-5xl mx-auto pt-6">
         <Routes>
           <Route index element={<DashboardHome />} />
-          <Route path="perfil"       element={<PerfilPage />} />
+          <Route path="perfil"           element={<PerfilPage />} />
+          <Route path="perfil/wizard"    element={<ProfileWizardPage />} />
           <Route path="guardados"    element={<GuardadosPage />} />
           <Route path="documentos"   element={<DocumentosPage />} />
           <Route path="evaluaciones" element={<EvaluacionesPage />} />

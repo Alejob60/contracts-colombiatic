@@ -55,24 +55,27 @@ async def upsert_company_profile(user_id: str, data: dict, settings: Settings) -
             INSERT INTO company_profiles
               (user_id, nit, nit_dv, razon_social, nombre_comercial, representante,
                email_contacto, telefono, departamento, ciudad, unspsc_codes,
-               capacidad_k, sector, tamano, palabras_negativas)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::text[],$12,$13,$14,$15::text[])
+               capacidad_k, sector, tamano, palabras_negativas,
+               presupuesto_min_interes, experiencia_anos)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::text[],$12,$13,$14,$15::text[],$16,$17)
             ON CONFLICT (user_id) DO UPDATE SET
-              nit               = EXCLUDED.nit,
-              nit_dv            = EXCLUDED.nit_dv,
-              razon_social      = EXCLUDED.razon_social,
-              nombre_comercial  = EXCLUDED.nombre_comercial,
-              representante     = EXCLUDED.representante,
-              email_contacto    = EXCLUDED.email_contacto,
-              telefono          = EXCLUDED.telefono,
-              departamento      = EXCLUDED.departamento,
-              ciudad            = EXCLUDED.ciudad,
-              unspsc_codes      = EXCLUDED.unspsc_codes,
-              capacidad_k       = EXCLUDED.capacidad_k,
-              sector            = EXCLUDED.sector,
-              tamano            = EXCLUDED.tamano,
-              palabras_negativas= EXCLUDED.palabras_negativas,
-              updated_at        = now()
+              nit                  = EXCLUDED.nit,
+              nit_dv               = EXCLUDED.nit_dv,
+              razon_social         = EXCLUDED.razon_social,
+              nombre_comercial     = EXCLUDED.nombre_comercial,
+              representante        = EXCLUDED.representante,
+              email_contacto       = EXCLUDED.email_contacto,
+              telefono             = EXCLUDED.telefono,
+              departamento         = EXCLUDED.departamento,
+              ciudad               = EXCLUDED.ciudad,
+              unspsc_codes         = EXCLUDED.unspsc_codes,
+              capacidad_k          = EXCLUDED.capacidad_k,
+              sector               = EXCLUDED.sector,
+              tamano               = EXCLUDED.tamano,
+              palabras_negativas   = EXCLUDED.palabras_negativas,
+              presupuesto_min_interes = EXCLUDED.presupuesto_min_interes,
+              experiencia_anos     = EXCLUDED.experiencia_anos,
+              updated_at           = now()
             RETURNING *
         """,
             user_id,
@@ -90,6 +93,8 @@ async def upsert_company_profile(user_id: str, data: dict, settings: Settings) -
             data.get("sector"),
             data.get("tamano"),
             data.get("palabras_negativas", []),
+            data.get("presupuesto_min_interes"),
+            data.get("experiencia_anos"),
         )
         return _row_to_dict(row)
     finally:

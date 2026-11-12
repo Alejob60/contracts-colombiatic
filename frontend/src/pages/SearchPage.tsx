@@ -12,6 +12,9 @@ import {
   ChevronLeft, ChevronRight,
   X, Search, ListFilter, Clock, Trash2, Building2, Loader2,
 } from 'lucide-react';
+import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
+import { useProfileCompletion }    from '@/hooks/useProfileCompletion';
+import { useAuthStore }            from '@/store/useAuthStore';
 
 const EMPTY_FILTERS: FilterValues = {
   departamento: '',
@@ -32,6 +35,8 @@ export function SearchPage() {
   const [mobileFilters, setMobileFilters] = useState(false);
   const { data, loading, error, search } = useSecopSearch();
   const { history, push: pushHistory, remove: removeHistory, clear: clearHistory } = useSearchHistory();
+  const { isAuthenticated } = useAuthStore();
+  const { data: completion } = useProfileCompletion(isAuthenticated);
 
   // Dual-search state
   const [entityInput, setEntityInput] = useState(searchParams.get('entidad') ?? '');
@@ -224,6 +229,13 @@ export function SearchPage() {
           )}
         </div>
       </div>
+
+      {/* Profile completion nudge — compact, only when logged in and score < 60 */}
+      {completion && completion.score < 60 && (currentQuery || currentEntidad) && (
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-3">
+          <ProfileCompletionBanner data={completion} variant="compact" />
+        </div>
+      )}
 
       {/* ── Mobile filter slide-over ── */}
       <AnimatePresence>

@@ -34,6 +34,7 @@ from app.application.manage_company import (
     toggle_alert,
     _row_to_dict,
 )
+from app.application.profile_completion import get_completion_score
 from app.infrastructure.s3_document_store import S3DocumentStore
 from app.workers.embedding_worker import index_document
 
@@ -83,6 +84,19 @@ class AlertToggleRequest(BaseModel):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
+
+@router.get("/completion-score")
+async def get_profile_completion(
+    user:     dict[str, Any] = Depends(get_current_user),
+    settings: Settings       = Depends(get_settings),
+) -> JSONResponse:
+    """
+    Returns a 0-100 profile completion score with a list of pending items.
+    Used by the dashboard banner and wizard to guide users.
+    """
+    result = await get_completion_score(_user_id(user), settings)
+    return JSONResponse(content=result)
+
 
 @router.get("/profile")
 async def get_profile(
