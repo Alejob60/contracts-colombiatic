@@ -15,6 +15,8 @@ import {
 import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
 import { useProfileCompletion }    from '@/hooks/useProfileCompletion';
 import { useAuthStore }            from '@/store/useAuthStore';
+import { AdvisorPanel }            from '@/components/advisor/AdvisorPanel';
+import type { SecopProcessCard }   from '@/types/secop';
 
 const EMPTY_FILTERS: FilterValues = {
   departamento: '',
@@ -35,8 +37,9 @@ export function SearchPage() {
   const [mobileFilters, setMobileFilters] = useState(false);
   const { data, loading, error, search } = useSecopSearch();
   const { history, push: pushHistory, remove: removeHistory, clear: clearHistory } = useSearchHistory();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isPro } = useAuthStore();
   const { data: completion } = useProfileCompletion(isAuthenticated);
+  const [selectedProcess, setSelectedProcess] = useState<SecopProcessCard | null>(null);
 
   // Dual-search state
   const [entityInput, setEntityInput] = useState(searchParams.get('entidad') ?? '');
@@ -460,11 +463,13 @@ export function SearchPage() {
                     key={proc.proceso_id || idx}
                     variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
                   >
-                    <ResultCard
-                      process={proc}
-                      isBlurred={!proc.url_proceso && !proc.descripcion && !proc.precio_base}
-                      onUpgrade={() => setShowGate(true)}
-                    />
+                    <div onClick={() => setSelectedProcess(p => p?.proceso_id === proc.proceso_id ? null : proc)}>
+                      <ResultCard
+                        process={proc}
+                        isBlurred={!proc.url_proceso && !proc.descripcion && !proc.precio_base}
+                        onUpgrade={() => setShowGate(true)}
+                      />
+                    </div>
                   </motion.div>
                 ))}
               </motion.div>
@@ -499,6 +504,16 @@ export function SearchPage() {
           )}
         </main>
       </div>
+
+      {/* Asesor IA — only for PRO users */}
+      {isPro && (
+        <AdvisorPanel
+          searchCtx={currentQuery || currentEntidad
+            ? { query: currentQuery, entidad: currentEntidad, total: data?.total ?? 0 }
+            : null}
+          selectedProcess={selectedProcess}
+        />
+      )}
     </div>
   );
 }

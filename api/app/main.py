@@ -43,6 +43,7 @@ from app.api.usage_router import router as usage_router
 from app.api.competitive_router import router as competitive_router
 from app.api.hermes_router import router as hermes_router
 from app.api.k_residual_router import router as k_residual_router
+from app.api.advisor_router import router as advisor_router
 from app.config import Settings
 from app.infrastructure.db import build_async_engine, build_session_maker
 from app.infrastructure.secop_soda_gateway import SecopSodaGateway
@@ -204,6 +205,7 @@ def create_app() -> FastAPI:
     application.include_router(competitive_router)
     application.include_router(hermes_router)
     application.include_router(k_residual_router)
+    application.include_router(advisor_router)
 
     return application
 
